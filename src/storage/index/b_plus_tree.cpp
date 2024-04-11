@@ -474,9 +474,6 @@ auto BPLUSTREE_TYPE::RemoveOptimal(const KeyType &key, Context *ctx) -> void {
     auto read_guard = bpm_->FetchPageRead(page_id);
     auto b_plus_tree_page = read_guard.As<BPlusTreePage>();
     ctx->read_set_.emplace_back(std::move(read_guard));
-    
-    
-
 
     ctx->header_page_ = std::nullopt;
 
@@ -505,7 +502,6 @@ auto BPLUSTREE_TYPE::RemoveOptimal(const KeyType &key, Context *ctx) -> void {
       }
 
       index = BinarySearch(b_plus_tree_internal_page, key);
-      std::cout << b_plus_tree_internal_page->ToString() << std::endl;
       page_id = b_plus_tree_internal_page->ValueAt(index);
       ctx->index_set_.push_back(index); 
 
@@ -532,10 +528,10 @@ auto BPLUSTREE_TYPE::RemoveOptimal(const KeyType &key, Context *ctx) -> void {
   auto b_plus_tree_page_mut = write_guard.AsMut<BPlusTreePage>();
   ctx->write_set_.emplace_back(std::move(write_guard));
   ctx->page_id_set_.push_back(page_id);
-  ctx->index_set_.push_back(index);
+  
   
   // if root page is safe, release header page lock
-  if (b_plus_tree_page_mut->GetSize() < b_plus_tree_page_mut->GetMaxSize()) {
+  if (b_plus_tree_page_mut->GetSize() - 1 >= b_plus_tree_page_mut->GetMinSize()) {
     ctx->header_page_ = std::nullopt;
   }
 
@@ -564,7 +560,6 @@ auto BPLUSTREE_TYPE::RemoveOptimal(const KeyType &key, Context *ctx) -> void {
     ctx->page_id_set_.push_back(page_id);
     ctx->index_set_.push_back(index);
   }
-  ctx->index_set_.pop_back();
 }
 
 /*****************************************************************************
@@ -628,8 +623,14 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
   }
 
   int leaf_min_size = static_cast<int>((ceil((leaf_max_size_) / 2.0)));
-  auto father_guard = std::move(ctx.write_set_.back());
-  father_internal_page = father_guard.AsMut<InternalPage>();
+  WritePageGuard father_guard;
+  if (!ctx.write_set_.empty()) {
+    father_guard = std::move(ctx.write_set_.back());
+    father_internal_page = father_guard.AsMut<InternalPage>();
+  } else {
+    return;
+  }
+  
   ctx.write_set_.pop_back();
 
   int what_merge_flag = 0;
@@ -707,7 +708,6 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
         new_key_page->SetKeyAt(BinarySearch(new_key_page, key), new_first_key_opt.value());
         new_first_key_opt = std::nullopt;
         check_opt_merge = std::nullopt;
-        std::cout << new_key_page->ToString() << std::endl;
       }
       
       if (i == 1 && check_opt_merge_flag == 0 && check_opt_merge.has_value()) {
@@ -750,7 +750,6 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
       new_key_page->SetKeyAt(BinarySearch(new_key_page, key), new_first_key_opt.value());
       new_first_key_opt = std::nullopt;
       // check_opt_merge = std::nullopt;
-      std::cout << new_key_page->ToString() << std::endl;
     }
   }
 
@@ -874,8 +873,6 @@ auto BPLUSTREE_TYPE::MergeInternal(InternalPage *internal_page, InternalPage *fa
     bpm_->UnpinPage(to_delete_page_id, true);
     bpm_->DeletePage(to_delete_page_id);
 
-    std::cout << internal_page->ToString() << std::endl;
-
     ret = 1;
   } else if (father_internal_page->GetSize() - 1 == father_page_index) {  // be merged left into it
     auto guard = bpm_->FetchPageWrite(father_internal_page->ValueAt(father_page_index - 1));
@@ -899,8 +896,6 @@ auto BPLUSTREE_TYPE::MergeInternal(InternalPage *internal_page, InternalPage *fa
 
     internal_page->SetSize(internal_size + left_size);
 
-    std::cout << internal_page->ToString() << std::endl;
-
     // delete internal key value pair
     // internal_page = left_sibling;
 
@@ -922,7 +917,7 @@ auto BPLUSTREE_TYPE::Check(InternalPage *internal_page, int index, const KeyType
   std::pair<KeyType, page_id_t> pair;
   std::optional<int> ret = std::nullopt;
   if (comparator_(internal_page->KeyAt(index), key) == 0) {
-    if ((flag == 0 || flag == -1) && new_key.has_value()) {
+    if ((flag == -1) && new_key.has_value()) {
       // if (comparator_(key, new))
       internal_page->SetKeyAt(index, new_key.value());
       return -1;
