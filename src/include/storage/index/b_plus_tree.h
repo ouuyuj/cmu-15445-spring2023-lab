@@ -44,6 +44,8 @@ class Context {
   // When you insert into / remove from the B+ tree, store the write guard of header page here.
   // Remember to drop the header page guard and set it to nullopt when you want to unlock all.
   std::optional<WritePageGuard> header_page_{std::nullopt};
+  
+  std::optional<ReadPageGuard> read_header_page_{std::nullopt};
 
   // Save the root page id here so that it's easier to know if the current page is the root page.
   page_id_t root_page_id_{INVALID_PAGE_ID};

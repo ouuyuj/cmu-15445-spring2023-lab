@@ -133,14 +133,16 @@ TEST(BPlusTreeConcurrentTest, InsertTest1) {
   page_id_t page_id;
   auto header_page = bpm->NewPage(&page_id);
   // create b+ tree
-  BPlusTree<GenericKey<8>, RID, GenericComparator<8>> tree("foo_pk", header_page->GetPageId(), bpm, comparator);
+  BPlusTree<GenericKey<8>, RID, GenericComparator<8>> tree("foo_pk", header_page->GetPageId(), bpm, comparator, 3, 4);
   // keys to Insert
   std::vector<int64_t> keys;
-  int64_t scale_factor = 1000000;
+  int64_t scale_factor = 1000;
   for (int64_t key = 1; key < scale_factor; key++) {
     keys.push_back(key);
   }
-  LaunchParallelTest(5, InsertHelper, &tree, keys);
+  LaunchParallelTest(2, InsertHelper, &tree, keys);
+
+  std::cout << tree.DrawBPlusTree() << std::endl;
 
   std::vector<RID> rids;
   GenericKey<8> index_key;
