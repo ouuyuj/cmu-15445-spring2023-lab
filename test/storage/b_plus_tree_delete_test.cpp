@@ -229,9 +229,9 @@ TEST(BPlusTreeTests, DeleteTest3) {
   std::cout << tree.DrawBPlusTree() << std::endl;
   std::cout << "<===================>" << std::endl;
 
-  std::vector<int64_t> remove_keys = {
-      37, 2, 13, 25, 17, 26, 29, 35, 38, 27, 39, 36, 9, 24, 16, 33, 31, 5, 4, 18, 19, 28, 20, 32, 18, 19,
-  };  // 20, 34, 6, 1, 3, 10, 11,18,19,27, 8, 12,22,21,28,20,14,30};
+  std::vector<int64_t> remove_keys = {37, 2, 13, 25, 17, 26, 29, 35, 38, 27, 39, 36, 9,  24, 16, 33,
+                                      31, 5, 4,  18, 19, 1,  3,  20, 32, 18, 19, 6,  7,  20, 34, 6,
+                                      1,  3, 10, 11, 18, 19, 27, 8,  12, 22, 21, 28, 20, 14, 30};
   for (auto key : remove_keys) {
     index_key.SetFromInteger(key);
     tree.Remove(index_key, transaction);

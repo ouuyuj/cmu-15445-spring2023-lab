@@ -14,10 +14,8 @@
 
 namespace bustub {
 
-SeqScanExecutor::SeqScanExecutor(ExecutorContext *exec_ctx, const SeqScanPlanNode *plan) 
-    : AbstractExecutor(exec_ctx), plan_(plan) {
-    
-}
+SeqScanExecutor::SeqScanExecutor(ExecutorContext *exec_ctx, const SeqScanPlanNode *plan)
+    : AbstractExecutor(exec_ctx), plan_(plan) {}
 
 void SeqScanExecutor::Init() {
   // auto table_oid = plan_->GetTableOid();
@@ -26,21 +24,15 @@ void SeqScanExecutor::Init() {
   // auto table_info = catalog->GetTable(table_oid);
   // auto &table = table_info->table_;
 
-  
-  
   throw NotImplementedException("SeqScanExecutor is not implemented");
-
 }
 
-auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool { 
-  
-
+auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
   // std::vector<Value> values{};
   // values.reserve(GetOutputSchema().GetColumnCount());
   // (*tuple);
 
-  
-  return false; 
+  return false;
 }
 
 }  // namespace bustub

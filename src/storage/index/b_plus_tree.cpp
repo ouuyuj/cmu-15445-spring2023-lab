@@ -108,11 +108,11 @@ auto BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result
 
   auto header_guard = bpm_->FetchPageRead(header_page_id_);
   auto header_page = header_guard.As<BPlusTreeHeaderPage>();
-  
+
   ctx.root_page_id_ = header_page->root_page_id_;
 
   FindLeafNodeRead(key, &ctx);
-  
+
   auto leaf_guard = std::move(ctx.read_set_.back());
   auto leaf_page = leaf_guard.template As<LeafPage>();
   int index = BinarySearch(leaf_page, key);
@@ -131,13 +131,12 @@ auto BPLUSTREE_TYPE::InsertOptimal(const KeyType &key, Context *ctx) -> void {
   BUSTUB_ASSERT(page_id != INVALID_PAGE_ID, "root page id is invalid page id");
   int index;
   const InternalPage *b_plus_tree_internal_page;
-  
+
   // acquire root read lock and then release header lock
   {
     auto read_guard = bpm_->FetchPageRead(page_id);
     auto b_plus_tree_page = read_guard.As<BPlusTreePage>();
     ctx->read_set_.emplace_back(std::move(read_guard));
-
 
     ctx->header_page_ = std::nullopt;
 
@@ -153,10 +152,10 @@ auto BPLUSTREE_TYPE::InsertOptimal(const KeyType &key, Context *ctx) -> void {
           ctx->read_set_.front().Drop();
           ctx->read_set_.pop_front();
         }
-        
+
         ctx->write_set_.emplace_back(std::move(write_guard));
         ctx->page_id_set_.push_back(page_id);
-        
+
         if (b_plus_tree_page->GetSize() < b_plus_tree_page->GetMaxSize()) {
           return;
         }
@@ -166,7 +165,7 @@ auto BPLUSTREE_TYPE::InsertOptimal(const KeyType &key, Context *ctx) -> void {
       index = BinarySearch(b_plus_tree_internal_page, key);
       page_id = b_plus_tree_internal_page->ValueAt(index);
 
-      read_guard = bpm_->FetchPageRead(page_id);
+      read_guard = bpm_->FetchPageRead(page_id); // leak of 58352 byte(s)
       b_plus_tree_page = read_guard.template As<BPlusTreePage>();
       ctx->read_set_.emplace_back(std::move(read_guard));
       if (ctx->read_set_.size() >= 2 && !b_plus_tree_page->IsLeafPage()) {
@@ -188,7 +187,7 @@ auto BPLUSTREE_TYPE::InsertOptimal(const KeyType &key, Context *ctx) -> void {
   auto b_plus_tree_page_mut = write_guard.AsMut<BPlusTreePage>();
   ctx->write_set_.emplace_back(std::move(write_guard));
   ctx->page_id_set_.push_back(page_id);
-  
+
   // if root page is safe, release header page lock
   if (b_plus_tree_page_mut->GetSize() < b_plus_tree_page_mut->GetMaxSize()) {
     ctx->header_page_ = std::nullopt;
@@ -196,7 +195,7 @@ auto BPLUSTREE_TYPE::InsertOptimal(const KeyType &key, Context *ctx) -> void {
 
   InternalPage *b_plus_tree_internal_page_mut = nullptr;
 
-  while(true) {
+  while (true) {
     // if safe, release top locks of this node
     if (ctx->write_set_.size() >= 2 && b_plus_tree_page_mut->GetSize() < b_plus_tree_page_mut->GetMaxSize()) {
       while (ctx->write_set_.size() >= 2) {
@@ -209,7 +208,7 @@ auto BPLUSTREE_TYPE::InsertOptimal(const KeyType &key, Context *ctx) -> void {
     } else {
       break;
     }
-    
+
     index = BinarySearch(b_plus_tree_internal_page_mut, key);
     page_id = b_plus_tree_internal_page_mut->ValueAt(index);
 
@@ -219,7 +218,6 @@ auto BPLUSTREE_TYPE::InsertOptimal(const KeyType &key, Context *ctx) -> void {
     ctx->page_id_set_.push_back(page_id);
   }
 }
-
 
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::FindLeafNodeRead(const KeyType &key, Context *ctx) const -> void {
@@ -234,10 +232,10 @@ auto BPLUSTREE_TYPE::FindLeafNodeRead(const KeyType &key, Context *ctx) const ->
     b_plus_tree_page = guard.As<BPlusTreePage>();
     ctx->read_set_.emplace_back(std::move(guard));
 
-    // crabbing latch 
+    // crabbing latch
     if (ctx->read_set_.size() >= 2) {
       ctx->read_set_.front().Drop();
-      ctx->read_set_.pop_front();  
+      ctx->read_set_.pop_front();
     }
 
     if (!b_plus_tree_page->IsLeafPage()) {
@@ -294,7 +292,7 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
     // for (auto &page_guard : ctx.write_set_) {
     //   fs << page_guard.PageId() << " → ";
     // }
-    
+
     auto leaf_page_guard = std::move(ctx.write_set_.back());
     auto leaf_page = leaf_page_guard.AsMut<LeafPage>();
     // if you try to reinsert an existing key into the index,
@@ -352,7 +350,7 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
       flag = true;
     }
   }
-  
+
   return flag;
 }
 
@@ -460,15 +458,13 @@ auto BPLUSTREE_TYPE::SplitLeaf(LeafPage *leaf_page, const KeyType &key, const Va
   return std::nullopt;
 }
 
-
-
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::RemoveOptimal(const KeyType &key, Context *ctx) -> void {
   page_id_t page_id = ctx->root_page_id_;
   BUSTUB_ASSERT(page_id != INVALID_PAGE_ID, "root page id is invalid page id");
   int index;
   const InternalPage *b_plus_tree_internal_page;
-  
+
   // acquire root read lock and then release header lock
   {
     auto read_guard = bpm_->FetchPageRead(page_id);
@@ -489,11 +485,11 @@ auto BPLUSTREE_TYPE::RemoveOptimal(const KeyType &key, Context *ctx) -> void {
           ctx->read_set_.front().Drop();
           ctx->read_set_.pop_front();
         }
-        
+
         ctx->write_set_.emplace_back(std::move(write_guard));
         ctx->page_id_set_.push_back(page_id);
         // ctx->index_set_.push_back(index);
-        
+
         if (b_plus_tree_page->GetSize() - 1 >= b_plus_tree_page->GetMinSize()) {
           // ctx->index_set_.pop_back();
           return;
@@ -503,7 +499,7 @@ auto BPLUSTREE_TYPE::RemoveOptimal(const KeyType &key, Context *ctx) -> void {
 
       index = BinarySearch(b_plus_tree_internal_page, key);
       page_id = b_plus_tree_internal_page->ValueAt(index);
-      ctx->index_set_.push_back(index); 
+      ctx->index_set_.push_back(index);
 
       read_guard = bpm_->FetchPageRead(page_id);
       b_plus_tree_page = read_guard.template As<BPlusTreePage>();
@@ -528,8 +524,7 @@ auto BPLUSTREE_TYPE::RemoveOptimal(const KeyType &key, Context *ctx) -> void {
   auto b_plus_tree_page_mut = write_guard.AsMut<BPlusTreePage>();
   ctx->write_set_.emplace_back(std::move(write_guard));
   ctx->page_id_set_.push_back(page_id);
-  
-  
+
   // if root page is safe, release header page lock
   if (b_plus_tree_page_mut->GetSize() - 1 >= b_plus_tree_page_mut->GetMinSize()) {
     ctx->header_page_ = std::nullopt;
@@ -537,7 +532,7 @@ auto BPLUSTREE_TYPE::RemoveOptimal(const KeyType &key, Context *ctx) -> void {
 
   InternalPage *b_plus_tree_internal_page_mut = nullptr;
 
-  while(true) {
+  while (true) {
     // if safe, release top locks of this node
     if (ctx->write_set_.size() >= 2 && b_plus_tree_page_mut->GetSize() - 1 >= b_plus_tree_page_mut->GetMinSize()) {
       while (ctx->write_set_.size() >= 2) {
@@ -550,7 +545,7 @@ auto BPLUSTREE_TYPE::RemoveOptimal(const KeyType &key, Context *ctx) -> void {
     } else {
       break;
     }
-    
+
     index = BinarySearch(b_plus_tree_internal_page_mut, key);
     page_id = b_plus_tree_internal_page_mut->ValueAt(index);
 
@@ -630,7 +625,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
   } else {
     return;
   }
-  
+
   ctx.write_set_.pop_back();
 
   int what_merge_flag = 0;
@@ -709,7 +704,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
         new_first_key_opt = std::nullopt;
         check_opt_merge = std::nullopt;
       }
-      
+
       if (i == 1 && check_opt_merge_flag == 0 && check_opt_merge.has_value()) {
         check_opt = Check(father_internal_page, check_opt_merge.value(),
                           father_internal_page->KeyAt(check_opt_merge.value()), what_merge_flag, std::nullopt, &ctx);
