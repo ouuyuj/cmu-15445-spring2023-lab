@@ -187,6 +187,7 @@ auto BPLUSTREE_TYPE::InsertOptimal(const KeyType &key, Context *ctx) -> void {
   auto header_guard = bpm_->FetchPageWrite(header_page_id_);
   auto header_page = header_guard.AsMut<BPlusTreeHeaderPage>();
   ctx->header_page_ = std::move(header_guard);
+  ctx->root_page_id_ = header_page->root_page_id_;
   page_id = header_page->root_page_id_;
 
   auto write_guard = bpm_->FetchPageWrite(page_id);
@@ -203,7 +204,7 @@ auto BPLUSTREE_TYPE::InsertOptimal(const KeyType &key, Context *ctx) -> void {
 
   while (true) {
     // if safe, release top locks of this node
-    if (ctx->write_set_.size() >= 2 && b_plus_tree_page_mut->GetSize() < b_plus_tree_page_mut->GetMaxSize()) {
+    if (b_plus_tree_page_mut->GetSize() < b_plus_tree_page_mut->GetMaxSize()) {
       if (ctx->header_page_.has_value()) {
         ctx->header_page_ = std::nullopt;
       }
@@ -301,6 +302,8 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
     // fs.open("/home/heibai/projects/cmu-15445/project/bustub/test/storage/log.log", std::ios::app | std::ios::out);
     InsertOptimal(key, &ctx);
 
+    // header_page = ctx.header_page_.AsMut<BPlusTreeHeaderPage>();
+
     // fs << "thread " << std::this_thread::get_id() << " | insert" << ": "
     //     << key << " [id: " << ctx.write_set_.back().PageId()
     //     << ", size: " << ctx.write_set_.back().As<BPlusTreePage>()->GetSize() << "/"
@@ -314,6 +317,7 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
     // if you try to reinsert an existing key into the index,
     // it should not perform the insertion, and should return false.
     if (comparator_(leaf_page->KeyAt(BinarySearch(leaf_page, key)), key) == 0) {
+      // fs << "失败\n";
       return false;
     }
 
@@ -327,15 +331,15 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
     WritePageGuard write_guard;
 
     if (optional.has_value()) {      // leaf node split operation has happened
-      if (ctx.write_set_.empty()) {  // leaf page is the root page
+      if (ctx.write_set_.empty() && ctx.IsRootPage(leaf_page_guard.PageId())) {  // leaf page is the root page
         auto root_page_guard = bpm_->NewPageGuarded(&header_page->root_page_id_);
         auto root_page = root_page_guard.AsMut<InternalPage>();
         root_page->Init(internal_max_size_);
         root_page->InsertMap2Internal(1, optional.value());
         root_page->SetValueAt(0, page_id);
-      } else {  // leaf page is not the root page
+      } else if (!ctx.write_set_.empty()) {  // leaf page is not the root page
         do {
-          write_guard = std::move(ctx.write_set_.back());
+          write_guard = std::move(ctx.write_set_.back());///////////////////////
           ctx.write_set_.pop_back();
           page_id = ctx.page_id_set_.back();
           ctx.page_id_set_.pop_back();
@@ -344,7 +348,7 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
           // fs << write_guard.AsMut<InternalPage>()->ToString() << "\n";
         } while (!ctx.write_set_.empty() && optional.has_value());
 
-        if (ctx.write_set_.empty() && optional.has_value()) {  // root page is split
+        if (ctx.write_set_.empty() && optional.has_value() && ctx.header_page_.has_value()) {  // root page is split
           auto root_page_guard = bpm_->NewPageGuarded(&header_page->root_page_id_);
           auto root_page = root_page_guard.AsMut<InternalPage>();
           root_page->Init(internal_max_size_);
@@ -366,6 +370,7 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
       flag = true;
     }
   }
+  // fs << "\n";
 
   return flag;
 }
@@ -437,7 +442,7 @@ auto BPLUSTREE_TYPE::SplitLeaf(LeafPage *leaf_page, const KeyType &key, const Va
     int pos = BinarySearch(leaf_page, key);
     // if (pos == -1) pos = 0;
     BUSTUB_ASSERT(pos != -2, "pos err");
-    int first_node_size = static_cast<int>((ceil((leaf_max_size_) / 2.0)));  // ????
+    int first_node_size = static_cast<int>((ceil((leaf_max_size_) / 2.0)));
 
     std::pair<KeyType, page_id_t> internal_pair;
 
@@ -453,7 +458,7 @@ auto BPLUSTREE_TYPE::SplitLeaf(LeafPage *leaf_page, const KeyType &key, const Va
         second_leaf_page->SequentialInsert(i - first_node_size, leaf_page->RemoveMapAt(i));
       }
       second_leaf_page->InsertMap2Leaf(pos - first_node_size + 1, leaf_pair);
-    } else {  // insert to first node;
+    } else {  // insert to first node
               // move reamaining values from first node to second node
       for (int i = first_node_size - 1; i < leaf_max_size_; i++) {
         second_leaf_page->SequentialInsert(i - first_node_size + 1, leaf_page->RemoveMapAt(i));
@@ -1182,7 +1187,7 @@ auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE {
  * @return : index iterator
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(bpm_, -1, -1); }
+auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(); }
 
 // INDEX_TEMPLATE_ARGUMENTS
 // auto BPLUSTREE_TYPE::End() const -> INDEXITERATOR_TYPE {
