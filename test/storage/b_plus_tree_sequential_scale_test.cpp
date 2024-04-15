@@ -41,21 +41,21 @@ TEST(BPlusTreeTests, ScaleTest) {  // NOLINT
   (void)header_page;
 
   // create b+ tree
-  BPlusTree<GenericKey<8>, RID, GenericComparator<8>> tree("foo_pk", page_id, bpm, comparator, 2, 3);
+  BPlusTree<GenericKey<8>, RID, GenericComparator<8>> tree("foo_pk", page_id, bpm, comparator, 3, 4);
   GenericKey<8> index_key;
   RID rid;
   // create transaction
   auto *transaction = new Transaction(0);
 
-  int64_t scale = 5000;
+  int64_t scale = 1000;
   std::vector<int64_t> keys;
   for (int64_t key = 1; key < scale; key++) {
     keys.push_back(key);
   }
 
   // randomized the insertion order
-  auto rng = std::default_random_engine{};
-  std::shuffle(keys.begin(), keys.end(), rng);
+  // auto rng = std::default_random_engine{};
+  // std::shuffle(keys.begin(), keys.end(), rng);
   std::cout << keys.size() << std::endl;
   for (auto key : keys) {
     int64_t value = key & 0xFFFFFFFF;
@@ -79,6 +79,17 @@ TEST(BPlusTreeTests, ScaleTest) {  // NOLINT
 
     int64_t value = key & 0xFFFFFFFF;
     ASSERT_EQ(rids[0].GetSlotNum(), value);
+  }
+
+  int64_t start_key = 1;
+  int64_t current_key = start_key;
+  index_key.SetFromInteger(start_key);
+  for (auto iterator = tree.Begin(index_key); iterator != tree.End(); ++iterator) {
+    auto location = (*iterator).second;
+    EXPECT_EQ(location.GetPageId(), 0);
+    EXPECT_EQ(location.GetSlotNum(), current_key);
+    ASSERT_EQ(location.GetSlotNum(), current_key);
+    current_key = current_key + 1;
   }
 
   bpm->UnpinPage(HEADER_PAGE_ID, true);

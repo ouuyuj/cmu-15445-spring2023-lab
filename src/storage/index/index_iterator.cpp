@@ -34,25 +34,21 @@ INDEX_TEMPLATE_ARGUMENTS
 INDEXITERATOR_TYPE::~IndexIterator() = default;  // NOLINT
 
 INDEX_TEMPLATE_ARGUMENTS
-auto INDEXITERATOR_TYPE::IsEnd() -> bool {
-  return index_ == -1 && current_page_id_ == -1 && current_ == nullptr;
-}
+auto INDEXITERATOR_TYPE::IsEnd() -> bool { return index_ == -1 && current_page_id_ == -1 && current_ == nullptr; }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto INDEXITERATOR_TYPE::operator*() -> const MappingType & {
-  return *current_;
-}
+auto INDEXITERATOR_TYPE::operator*() -> const MappingType & { return *current_; }
 
 INDEX_TEMPLATE_ARGUMENTS
 auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & {
   ++index_;
-  std::cout << " index:" << index_ << "  size:" << current_leaf_page_->GetSize();
+  // std::cout << " index:" << index_ << "  size:" << current_leaf_page_->GetSize();
 
   if (index_ < current_leaf_page_->GetSize()) {
     ++current_;
   } else {
     page_id_t next_page_id = current_leaf_page_->GetNextPageId();
-    std::cout << "  next_page_id:" << next_page_id << std::endl;
+    // std::cout << "  next_page_id:" << next_page_id << std::endl;
     if (next_page_id != -1) {
       current_page_id_ = next_page_id;
       guard_ = bpm_->FetchPageRead(current_page_id_);
