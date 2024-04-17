@@ -24,15 +24,25 @@ void SeqScanExecutor::Init() {
   // auto table_info = catalog->GetTable(table_oid);
   // auto &table = table_info->table_;
 
+  const auto *table_info = exec_ctx_->GetCatalog()->GetTable(plan_->GetTableOid());
+
+  iter_ = std::make_unique<TableIterator>(table_info->table_->MakeIterator());
+  return;
+
   throw NotImplementedException("SeqScanExecutor is not implemented");
 }
 
 auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
-  // std::vector<Value> values{};
-  // values.reserve(GetOutputSchema().GetColumnCount());
-  // (*tuple);
+  if (iter_->IsEnd()) {
+    return false;
+  }
+  
+  *tuple = std::move(iter_->GetTuple().second);
+  *rid = iter_->GetRID();
 
-  return false;
+  ++(*iter_);
+
+  return true;
 }
 
 }  // namespace bustub

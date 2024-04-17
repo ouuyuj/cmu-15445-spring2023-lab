@@ -562,7 +562,7 @@ auto BPLUSTREE_TYPE::RemoveOptimal(const KeyType &key, Context *ctx) -> void {
       index = BinarySearch(b_plus_tree_internal_page, key);
       page_id = b_plus_tree_internal_page->ValueAt(index);
 
-      read_guard = bpm_->FetchPageRead(page_id);  // leak of 58352 byte(s)
+      read_guard = bpm_->FetchPageRead(page_id);
       b_plus_tree_page = read_guard.template As<BPlusTreePage>();
       ctx->read_set_.emplace_back(std::move(read_guard));
       if (ctx->read_set_.size() >= 2 && !b_plus_tree_page->IsLeafPage()) {
@@ -673,8 +673,6 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
 
   int leaf_page_size = leaf_page->GetSize();
 
-  auto deleted_pair = leaf_page->RemoveMapAt(index);
-  (void)deleted_pair;
   for (int i = index; i < leaf_page_size - 1; i++) {
     leaf_page->Move(i + 1, i);
   }
@@ -849,6 +847,9 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
   }
 
   if (father_internal_page->GetSize() == 1) {
+    if (ctx.header_page_.has_value()) {
+      header_page = ctx.header_page_.value().AsMut<BPlusTreeHeaderPage>();
+    }
     page_id_t delete_page_id = header_page->root_page_id_;
     header_page->root_page_id_ = father_internal_page->ValueAt(0);
 
