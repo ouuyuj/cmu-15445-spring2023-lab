@@ -18,14 +18,40 @@ namespace bustub {
 
 InsertExecutor::InsertExecutor(ExecutorContext *exec_ctx, const InsertPlanNode *plan,
                                std::unique_ptr<AbstractExecutor> &&child_executor)
-    : AbstractExecutor(exec_ctx) {}
+    : AbstractExecutor(exec_ctx), plan_(plan), child_executor_(std::move(child_executor)) {}
 
 void InsertExecutor::Init() { 
-  throw NotImplementedException("InsertExecutor is not implemented");
+  child_executor_->Init();
+  table_ = exec_ctx_->GetCatalog()->GetTable(plan_->GetTableOid())->table_.get();
 }
 
 auto InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool { 
-  return false;
+  Tuple child_tuple{};
+  int64_t cnt = 0;
+  // for (const auto& exec : child_executor_->GetExecutorContext()->GetCatalog()->GetTable()->table_.get()) {
+
+  // }
+  while (child_executor_->Next(&child_tuple, nullptr)) {
+    TupleMeta tuple_meta{INVALID_TXN_ID, INVALID_TXN_ID, false};
+    try {
+      table_->InsertTuple(tuple_meta, child_tuple);
+      cnt++;
+    } catch (std::exception& e) {
+      throw;
+    }
+  }
+  std::vector<Value> inserted_cnt;
+  inserted_cnt.emplace_back(Value(TypeId::INTEGER, cnt));
+  std::vector<Column> column;
+  column.emplace_back("inserted count", TypeId::INTEGER);
+  Schema schema(column);
+  *tuple = Tuple(inserted_cnt, &schema);
+
+  if (cnt == 0) {
+    return false;
+  }
+  
+  return true;
 }
 
 }  // namespace bustub
