@@ -22,15 +22,15 @@ InsertExecutor::InsertExecutor(ExecutorContext *exec_ctx, const InsertPlanNode *
 
 void InsertExecutor::Init() { 
   child_executor_->Init();
-  table_ = exec_ctx_->GetCatalog()->GetTable(plan_->GetTableOid())->table_.get();
+  Catalog* catalog = exec_ctx_->GetCatalog();
+  table_ = catalog->GetTable(plan_->GetTableOid())->table_.get();
+  index_info_ = catalog->GetTableIndexes(catalog->GetTable(plan_->GetTableOid())->name_);
 }
 
 auto InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool { 
   Tuple child_tuple{};
   int64_t cnt = 0;
-  // for (const auto& exec : child_executor_->GetExecutorContext()->GetCatalog()->GetTable()->table_.get()) {
 
-  // }
   while (child_executor_->Next(&child_tuple, nullptr)) {
     TupleMeta tuple_meta{INVALID_TXN_ID, INVALID_TXN_ID, false};
     try {
