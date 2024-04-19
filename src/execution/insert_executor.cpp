@@ -36,7 +36,7 @@ auto InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
     try {
       table_->InsertTuple(tuple_meta, child_tuple);
       cnt++;
-    } catch (std::exception& e) {
+    } catch (...) {
       throw;
     }
   }
@@ -47,10 +47,12 @@ auto InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
   Schema schema(column);
   *tuple = Tuple(inserted_cnt, &schema);
 
-  if (cnt == 0) {
+  if (cnt == 0 && is_executed_) {
     return false;
   }
-  
+
+  is_executed_ = true;
+
   return true;
 }
 
