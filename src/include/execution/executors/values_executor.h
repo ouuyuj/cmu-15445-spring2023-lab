@@ -48,6 +48,10 @@ class ValuesExecutor : public AbstractExecutor {
   /** @return The output schema for the values */
   auto GetOutputSchema() const -> const Schema & override { return plan_->OutputSchema(); }
 
+  auto GetPlan() const -> const ValuesPlanNode* {
+    return plan_;
+  }
+
  private:
   /** The values plan node to be executed */
   const ValuesPlanNode *plan_;
