@@ -31,11 +31,14 @@ auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
     return false;
   }
 
-  const auto& tuple_meta = iter_->GetTuple();
+  auto tuple_meta = iter_->GetTuple();
 
-  if (tuple_meta.first.is_deleted_) {
+  while (tuple_meta.first.is_deleted_) {
     ++(*iter_);
-    return false;
+    if (iter_->IsEnd()) {
+      return false;
+    }
+    tuple_meta = iter_->GetTuple();
   }
   
   *tuple = std::move(tuple_meta.second);
