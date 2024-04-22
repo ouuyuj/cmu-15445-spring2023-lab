@@ -52,10 +52,7 @@ auto InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
   }
   std::vector<Value> inserted_cnt;
   inserted_cnt.emplace_back(Value(TypeId::INTEGER, cnt));
-  std::vector<Column> column;
-  column.emplace_back("inserted count", TypeId::INTEGER);
-  Schema schema(column);
-  *tuple = Tuple(inserted_cnt, &schema);
+  *tuple = Tuple(inserted_cnt, &GetOutputSchema());
 
   if (cnt == 0 && is_executed_) {
     return false;
