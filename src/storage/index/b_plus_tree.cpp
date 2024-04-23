@@ -676,6 +676,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
   for (int i = index; i < leaf_page_size - 1; i++) {
     leaf_page->Move(i + 1, i);
   }
+  leaf_page->SetSize(leaf_page_size - 1);
 
   int father_page_index = -1;
   if (!ctx.index_set_.empty()) {
