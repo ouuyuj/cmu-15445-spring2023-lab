@@ -20,8 +20,8 @@ INDEXITERATOR_TYPE::IndexIterator(BufferPoolManager *bpm, page_id_t current_page
   if (current_page_id_ == -1 && index == -1) {
     current_ = {};
   } else {
-    guard_ = bpm_->FetchPageRead(current_page_id_);
-    current_leaf_page_ = guard_.As<B_PLUS_TREE_LEAF_PAGE_TYPE>();
+    auto guard = bpm_->FetchPageRead(current_page_id_);
+    current_leaf_page_ = guard.As<B_PLUS_TREE_LEAF_PAGE_TYPE>();
     current_ = current_leaf_page_->GetMapPointorAt(index_);
   }
 }
@@ -51,8 +51,8 @@ auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & {
     // std::cout << "  next_page_id:" << next_page_id << std::endl;
     if (next_page_id != -1) {
       current_page_id_ = next_page_id;
-      guard_ = bpm_->FetchPageRead(current_page_id_);
-      current_leaf_page_ = guard_.As<B_PLUS_TREE_LEAF_PAGE_TYPE>();
+      auto guard = bpm_->FetchPageRead(current_page_id_);
+      current_leaf_page_ = guard.As<B_PLUS_TREE_LEAF_PAGE_TYPE>();
 
       index_ = 0;
       current_ = current_leaf_page_->GetMapPointorAt(index_);
