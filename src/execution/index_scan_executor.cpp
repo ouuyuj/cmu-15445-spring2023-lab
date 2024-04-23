@@ -21,7 +21,6 @@ void IndexScanExecutor::Init() {
   table_info_ = catalog->GetTable(index_info_->table_name_);
   auto* tree = dynamic_cast<BPlusTreeIndexForTwoIntegerColumn *>(index_info_->index_.get());
   iter_ = tree->GetBeginIterator();
-  // iter_ = &iter;
 }
 
 auto IndexScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
