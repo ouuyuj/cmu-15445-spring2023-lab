@@ -1171,6 +1171,11 @@ auto BPLUSTREE_TYPE::IsStoleFromLeftInter(InternalPage *internal_page, int fathe
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE {
   page_id_t root_page_id = bpm_->FetchPageRead(header_page_id_).As<BPlusTreeHeaderPage>()->root_page_id_;
+
+  if (root_page_id == INVALID_PAGE_ID) {
+    return End();
+  }
+
   auto guard = bpm_->FetchPageRead(root_page_id);
   auto b_plus_tree_page = guard.As<BPlusTreePage>();
 
@@ -1189,11 +1194,6 @@ auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE {
   return INDEXITERATOR_TYPE(bpm_, subtree_page_id, 0);
 }
 
-// INDEX_TEMPLATE_ARGUMENTS
-// auto BPLUSTREE_TYPE::Begin() const -> INDEXITERATOR_TYPE {
-//   return INDEXITERATOR_TYPE();
-// }
-
 /*
  * Input parameter is low key, find the leaf page that contains the input key
  * first, then construct index iterator
@@ -1204,7 +1204,7 @@ auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE {
   page_id_t page_id = bpm_->FetchPageRead(header_page_id_).As<BPlusTreeHeaderPage>()->root_page_id_;
 
   if (page_id == INVALID_PAGE_ID) {
-    return INDEXITERATOR_TYPE(bpm_, -1, -1);
+    return End();
   }
 
   int index;
@@ -1240,10 +1240,6 @@ auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE {
 INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(); }
 
-// INDEX_TEMPLATE_ARGUMENTS
-// auto BPLUSTREE_TYPE::End() const -> INDEXITERATOR_TYPE {
-//   return INDEXITERATOR_TYPE();
-// }
 
 /**
  * @return Page id of the root of this tree
