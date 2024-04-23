@@ -42,6 +42,17 @@ class IndexIterator {  //  key value 在另外一页的问题
     throw std::runtime_error("unimplemented");
   }
 
+  auto operator=(const IndexIterator &other) -> IndexIterator & {
+    if (this != &other) {
+      bpm_ = other.bpm_;
+      current_page_id_ = other.current_page_id_;
+      index_ = other.index_;
+      current_ = other.current_;
+      current_leaf_page_ = other.current_leaf_page_;
+    }
+    return *this;
+  }
+
   // auto operator==(IndexIterator &itr) const -> bool {
   //   // KeyComparator key_comparator;
   //   return itr.current_ == current_;
@@ -60,7 +71,6 @@ class IndexIterator {  //  key value 在另外一页的问题
   page_id_t current_page_id_;
   int index_;
   MappingType *current_;
-  ReadPageGuard guard_;
   const B_PLUS_TREE_LEAF_PAGE_TYPE *current_leaf_page_;
 };
 
