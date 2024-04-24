@@ -15,11 +15,11 @@ namespace bustub {
 IndexScanExecutor::IndexScanExecutor(ExecutorContext *exec_ctx, const IndexScanPlanNode *plan)
     : AbstractExecutor(exec_ctx), plan_(plan) {}
 
-void IndexScanExecutor::Init() { 
-  Catalog* catalog = exec_ctx_->GetCatalog();
+void IndexScanExecutor::Init() {
+  Catalog *catalog = exec_ctx_->GetCatalog();
   index_info_ = catalog->GetIndex(plan_->GetIndexOid());
   table_info_ = catalog->GetTable(index_info_->table_name_);
-  auto* tree = dynamic_cast<BPlusTreeIndexForTwoIntegerColumn *>(index_info_->index_.get());
+  auto *tree = dynamic_cast<BPlusTreeIndexForTwoIntegerColumn *>(index_info_->index_.get());
   iter_ = tree->GetBeginIterator();
 }
 
@@ -47,7 +47,7 @@ auto IndexScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
   *tuple = tuple_pair.second;
 
   ++iter_;
-  
+
   return true;
 }
 

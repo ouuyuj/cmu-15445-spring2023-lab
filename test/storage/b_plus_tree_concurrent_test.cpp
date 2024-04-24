@@ -264,7 +264,7 @@ TEST(BPlusTreeConcurrentTest, DeleteTest1) {
 
   int64_t start_key = 2;
   int64_t current_key = start_key;
-  
+
   index_key.SetFromInteger(start_key);
   for (auto iterator = tree.Begin(index_key); iterator != tree.End(); ++iterator) {
     auto location = (*iterator).second;
@@ -274,7 +274,7 @@ TEST(BPlusTreeConcurrentTest, DeleteTest1) {
     size = size + 1;
   }
 
-  EXPECT_EQ(size,  scale_factor - 1 - static_cast<int64_t>(remove_keys.size()));
+  EXPECT_EQ(size, scale_factor - 1 - static_cast<int64_t>(remove_keys.size()));
 
   bpm->UnpinPage(HEADER_PAGE_ID, true);
   delete bpm;
@@ -301,7 +301,6 @@ TEST(BPlusTreeConcurrentTest, DISABLED_DeleteTest2) {
     keys.push_back(key);
   }
   InsertHelper(&tree, keys);
-
 
   std::vector<int64_t> remove_keys = {1, 4, 3, 2, 5, 6};
   LaunchParallelTest(2, DeleteHelperSplit, &tree, remove_keys, 2);

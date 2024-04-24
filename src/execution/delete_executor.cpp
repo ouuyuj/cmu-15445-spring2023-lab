@@ -20,14 +20,14 @@ DeleteExecutor::DeleteExecutor(ExecutorContext *exec_ctx, const DeletePlanNode *
                                std::unique_ptr<AbstractExecutor> &&child_executor)
     : AbstractExecutor(exec_ctx), plan_(plan), child_executor_(std::move(child_executor)) {}
 
-void DeleteExecutor::Init() { 
+void DeleteExecutor::Init() {
   child_executor_->Init();
-  Catalog* catalog = exec_ctx_->GetCatalog();
+  Catalog *catalog = exec_ctx_->GetCatalog();
   table_info_ = catalog->GetTable(plan_->GetTableOid());
   index_info_ = catalog->GetTableIndexes(catalog->GetTable(plan_->GetTableOid())->name_);
- }
+}
 
-auto DeleteExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool { 
+auto DeleteExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
   Tuple child_tuple{};
   int64_t cnt = 0;
   bool index_info_is_empty = index_info_.empty();
@@ -39,11 +39,12 @@ auto DeleteExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
       auto del_tuple_meta = table->GetTupleMeta(del_rid);
       del_tuple_meta.is_deleted_ = true;
       table->UpdateTupleMeta(del_tuple_meta, del_rid);
-      
+
       // update indexes
-      if (!index_info_is_empty) { 
+      if (!index_info_is_empty) {
         for (auto &x : index_info_) {
-          Tuple del_key_tuple = child_tuple.KeyFromTuple(table_info_->schema_, *(x->index_->GetKeySchema()), x->index_->GetKeyAttrs());
+          Tuple del_key_tuple =
+              child_tuple.KeyFromTuple(table_info_->schema_, *(x->index_->GetKeySchema()), x->index_->GetKeyAttrs());
           x->index_->DeleteEntry(del_key_tuple, del_rid, exec_ctx_->GetTransaction());
         }
       }

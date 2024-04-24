@@ -20,14 +20,14 @@ InsertExecutor::InsertExecutor(ExecutorContext *exec_ctx, const InsertPlanNode *
                                std::unique_ptr<AbstractExecutor> &&child_executor)
     : AbstractExecutor(exec_ctx), plan_(plan), child_executor_(std::move(child_executor)) {}
 
-void InsertExecutor::Init() { 
+void InsertExecutor::Init() {
   child_executor_->Init();
-  Catalog* catalog = exec_ctx_->GetCatalog();
+  Catalog *catalog = exec_ctx_->GetCatalog();
   table_info_ = catalog->GetTable(plan_->GetTableOid());
   index_info_ = catalog->GetTableIndexes(catalog->GetTable(plan_->GetTableOid())->name_);
 }
 
-auto InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool { 
+auto InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
   Tuple child_tuple{};
   int64_t cnt = 0;
   bool index_info_is_empty = index_info_.empty();
@@ -37,7 +37,7 @@ auto InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
     TupleMeta tuple_meta{INVALID_TXN_ID, INVALID_TXN_ID, false};
     try {
       auto rid = table->InsertTuple(tuple_meta, child_tuple);
-      if (!index_info_is_empty && rid) { 
+      if (!index_info_is_empty && rid) {
         for (auto &x : index_info_) {
           Tuple key_tuple =
               child_tuple.KeyFromTuple(table_info_->schema_, *(x->index_->GetKeySchema()), x->index_->GetKeyAttrs());

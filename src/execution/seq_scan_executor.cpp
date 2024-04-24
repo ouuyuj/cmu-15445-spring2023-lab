@@ -40,7 +40,7 @@ auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
     }
     tuple_meta = iter_->GetTuple();
   }
-  
+
   *tuple = std::move(tuple_meta.second);
   if (rid != nullptr) {
     *rid = iter_->GetRID();
