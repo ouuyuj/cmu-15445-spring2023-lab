@@ -127,8 +127,8 @@ class BPlusTree {
 
   auto StealInter(InternalPage *internal_page, int index, InternalPage *father_internal_page, int father_index) -> bool;
 
-  auto Check(InternalPage *internal_page, int index, KeyType key, int flag, std::optional<KeyType> new_key,
-             Context *ctx) -> std::optional<int>;
+  auto Check(InternalPage *internal_page, int index, KeyType key, std::optional<KeyType> new_key, Context *ctx)
+      -> std::optional<int>;
 
   // auto DeleteInternal()
  public:
