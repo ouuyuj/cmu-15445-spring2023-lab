@@ -721,7 +721,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
     } else {
       pair = MergeLeaf(leaf_page, father_internal_page, father_page_index, &what_merge_flag, &new_first_key);
       if (comparator_(pair.value().first, key) != 0) {
-        check_opt_merge = Check(father_internal_page, pair.value().second, pair.value().first, std::nullopt, &ctx);
+        check_opt_merge = Check(father_internal_page, pair.value().second, pair.value().first, &ctx);
         pair = std::nullopt;
       }
     }
@@ -744,16 +744,6 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
   int is_check = 0;
   int check_opt_merge_flag = 0;
   std::optional<int> check_opt = std::nullopt;
-  int root_page_flag = 0;
-  (void)root_page_flag;
-  int root_page_index = -1;
-  (void)root_page_index;
-  if (ctx.write_set_.empty() && ctx.header_page_) {
-    root_page_flag = what_merge_flag;
-    if (check_opt_merge.has_value()) {
-      root_page_index = check_opt_merge.value();
-    }
-  }
 
   what_merge_flag = 0;
 
@@ -761,7 +751,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
     if (check_opt_merge.has_value()) {
       if (i == 1 && check_opt_merge_flag == 0 && check_opt_merge.has_value()) {
         check_opt = Check(father_internal_page, check_opt_merge.value(),
-                          father_internal_page->KeyAt(check_opt_merge.value()), std::nullopt, &ctx);
+                          father_internal_page->KeyAt(check_opt_merge.value()), &ctx);
         check_opt_merge_flag = 1;
         father_guard = std::move(ctx.write_set_.back());
         father_internal_page = father_guard.AsMut<InternalPage>();
@@ -774,12 +764,11 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
     }
 
     if (check_opt.has_value()) {
-      check_opt = Check(father_internal_page, check_opt.value(), father_internal_page->KeyAt(check_opt.value()),
-                        std::nullopt, &ctx);
+      check_opt = Check(father_internal_page, check_opt.value(), father_internal_page->KeyAt(check_opt.value()), &ctx);
     }
 
     if (is_check == 0) {
-      check_opt = Check(father_internal_page, father_page_index, key, new_first_key_opt, &ctx);
+      check_opt = Check(father_internal_page, father_page_index, key, &ctx);
       if (check_opt != std::nullopt) {
         is_check = 1;
       }
@@ -793,7 +782,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
 
   // process root page here
   if (pair.has_value()) {
-    check_opt_merge = Check(father_internal_page, pair.value().second, pair.value().first, std::nullopt, &ctx);
+    check_opt_merge = Check(father_internal_page, pair.value().second, pair.value().first, &ctx);
   }
 
   if (check_opt.has_value() && check_opt.value() != -1) {
@@ -943,8 +932,8 @@ auto BPLUSTREE_TYPE::MergeInternal(InternalPage *internal_page, InternalPage *fa
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::Check(InternalPage *internal_page, int index, const KeyType key, std::optional<KeyType> new_key,
-                           Context *ctx) -> std::optional<int> {
+auto BPLUSTREE_TYPE::Check(InternalPage *internal_page, int index, const KeyType key, Context *ctx)
+    -> std::optional<int> {
   // if Key at index eq key to be deleted, remove this key value pair in the internal page
   std::pair<KeyType, page_id_t> pair;
   std::optional<int> ret = std::nullopt;
@@ -955,7 +944,7 @@ auto BPLUSTREE_TYPE::Check(InternalPage *internal_page, int index, const KeyType
     }
 
     pair = internal_page->RemoveMapAt(index);
-    
+
     for (int i = index; i < internal_page->GetSize(); i++) {
       internal_page->Move(i + 1, i);
     }
@@ -1043,7 +1032,6 @@ auto BPLUSTREE_TYPE::StealInter(InternalPage *internal_page, int index, Internal
 
     internal_page->SetKeyAt(1, father_internal_page->KeyAt(father_index));
     internal_page->SetValueAt(1, internal_page->ValueAt(0));
-    // internal_page->InsertMap2Internal(1, father_internal_page->)
     internal_page->SetValueAt(0, sibling->ValueAt(sibling->GetSize() - 1));
 
     father_internal_page->SetKeyAt(father_index, sibling->KeyAt(sibling->GetSize() - 1));
