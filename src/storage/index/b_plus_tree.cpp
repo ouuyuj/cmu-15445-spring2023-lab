@@ -659,9 +659,25 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
   int index = BinarySearch(leaf_page, key);
 
   if (index < 0) {
+    leaf_page_guard.Drop();
+    while (!ctx.write_set_.empty()) {
+      ctx.write_set_.front().Drop();
+      ctx.write_set_.pop_back();
+    }
+    if (ctx.header_page_) {
+      ctx.header_page_->Drop();
+    }
     return;
   }
   if (comparator_(leaf_page->KeyAt(index), key) != 0) {
+    leaf_page_guard.Drop();
+    while (!ctx.write_set_.empty()) {
+      ctx.write_set_.front().Drop();
+      ctx.write_set_.pop_back();
+    }
+    if (ctx.header_page_) {
+      ctx.header_page_->Drop();
+    }
     return;
   }
 
@@ -693,9 +709,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
     return;
   }
 
-  int what_merge_flag = 0;
   int leaf_min_size = static_cast<int>((ceil((leaf_max_size_) / 2.0)));
-  KeyType new_first_key;
   std::optional<int> check_opt_merge = std::nullopt;
   std::optional<std::pair<KeyType, int>> pair;
 
@@ -719,7 +733,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
       father_internal_page->SetKeyAt(father_page_index, map.first);
       leaf_page->InsertMap2Leaf(0, std::move(map));
     } else {
-      pair = MergeLeaf(leaf_page, father_internal_page, father_page_index, &what_merge_flag, &new_first_key);
+      pair = MergeLeaf(leaf_page, father_internal_page, father_page_index);
       if (comparator_(pair.value().first, key) != 0) {
         check_opt_merge = Check(father_internal_page, pair.value().second, pair.value().first, &ctx);
         pair = std::nullopt;
@@ -728,16 +742,6 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
   } else {
     return;
   }
-  std::optional<KeyType> new_first_key_opt;
-
-  // if the leaf node fisrt key was deleted, update its father node key points to itself.
-  if (index == 0 && father_page_index == 0) {
-    if (what_merge_flag == 0) {
-      new_first_key = leaf_page->KeyAt(0);
-    }
-
-    new_first_key_opt = std::make_optional<KeyType>(new_first_key);
-  }
 
   leaf_page_guard.Drop();
 
@@ -745,7 +749,6 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
   int check_opt_merge_flag = 0;
   std::optional<int> check_opt = std::nullopt;
 
-  what_merge_flag = 0;
 
   for (int i = 0; !ctx.write_set_.empty(); i++) {
     if (check_opt_merge.has_value()) {
@@ -821,8 +824,8 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::MergeLeaf(LeafPage *leaf_page, InternalPage *father_internal_page, int father_page_index,
-                               int *flag, KeyType *new_key) -> std::pair<KeyType, int> {
+auto BPLUSTREE_TYPE::MergeLeaf(LeafPage *leaf_page, InternalPage *father_internal_page, int father_page_index)
+    -> std::pair<KeyType, int> {
   page_id_t leaf_page_id = INVALID_PAGE_ID;
   KeyType key;
   WritePageGuard guard;
@@ -841,8 +844,6 @@ auto BPLUSTREE_TYPE::MergeLeaf(LeafPage *leaf_page, InternalPage *father_interna
 
     key = father_internal_page->KeyAt(father_page_index);
     index = father_page_index;
-    *flag = 1;
-    *new_key = left_sibling->KeyAt(0);
 
     page_id_t delete_page_id = father_internal_page->ValueAt(father_page_index);
     bpm_->UnpinPage(delete_page_id, true);
@@ -862,8 +863,6 @@ auto BPLUSTREE_TYPE::MergeLeaf(LeafPage *leaf_page, InternalPage *father_interna
 
     key = father_internal_page->KeyAt(father_page_index + 1);
     index = father_page_index + 1;
-    *flag = 1;
-    *new_key = leaf_page->KeyAt(0);
 
     page_id_t delete_page_id = father_internal_page->ValueAt(father_page_index + 1);
     bpm_->UnpinPage(delete_page_id, true);

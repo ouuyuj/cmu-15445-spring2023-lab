@@ -110,8 +110,8 @@ class BPlusTree {
 
   auto MergeInternal(InternalPage *internal_page, InternalPage *father_internal_page, int father_page_index) -> int;
 
-  auto MergeLeaf(LeafPage *leaf_page, InternalPage *father_internal_page, int father_page_index, int *flag,
-                 KeyType *new_key) -> std::pair<KeyType, int>;
+  auto MergeLeaf(LeafPage *leaf_page, InternalPage *father_internal_page, int father_page_index)
+      -> std::pair<KeyType, int>;
 
   auto IsStoleFromRight(InternalPage *internal_page, int father_page_index, int leaf_min_size)
       -> std::optional<WritePageGuard>;
