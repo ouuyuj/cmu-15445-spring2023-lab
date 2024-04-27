@@ -609,6 +609,7 @@ auto BPLUSTREE_TYPE::RemoveOptimal(const KeyType &key, Context *ctx) -> void {
       while (ctx->write_set_.size() >= 2) {
         ctx->write_set_.front().Drop();
         ctx->write_set_.pop_front();
+        ctx->index_set_.pop_front();
       }
     }
 
@@ -642,6 +643,7 @@ INDEX_TEMPLATE_ARGUMENTS
 void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
   // Declaration of context instance.
   Context ctx;
+  auto log = std::stringstream();
 
   // If current tree is empty, return immediately.
   if (IsEmpty()) {
@@ -654,8 +656,11 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
   ctx.header_page_ = std::make_optional<WritePageGuard>(std::move(guard));
 
   RemoveOptimal(key, &ctx);
+  log << key << " write set size: " << ctx.write_set_.size() << " | "
+      << "index set size: " << ctx.index_set_.size();
   auto leaf_page_guard = std::move(ctx.write_set_.back());
   auto leaf_page = leaf_page_guard.AsMut<LeafPage>();
+  ctx.write_set_.pop_back();
   int index = BinarySearch(leaf_page, key);
 
   if (index < 0) {
@@ -669,6 +674,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
     }
     return;
   }
+
   if (comparator_(leaf_page->KeyAt(index), key) != 0) {
     leaf_page_guard.Drop();
     while (!ctx.write_set_.empty()) {
@@ -681,10 +687,8 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
     return;
   }
 
-  ctx.write_set_.pop_back();
-
   int leaf_page_size = leaf_page->GetSize();
-
+  leaf_page->RemoveMapAt(index);
   for (int i = index; i < leaf_page_size - 1; i++) {
     leaf_page->Move(i + 1, i);
   }
@@ -695,19 +699,29 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
     father_page_index = ctx.index_set_.back();
     ctx.index_set_.pop_back();
   } else {
+    if (ctx.header_page_ && ctx.IsRootPage(leaf_page_guard.PageId()) && leaf_page->GetSize() == 0) {
+      auto header_page = ctx.header_page_->AsMut<BPlusTreeHeaderPage>();
+
+      page_id_t delete_page_id = leaf_page_guard.PageId();
+      header_page->root_page_id_ = INVALID_PAGE_ID;
+
+      bpm_->UnpinPage(delete_page_id, true);
+      bpm_->DeletePage(delete_page_id);
+    }
+    leaf_page_guard.Drop();
+    ctx.header_page_ = std::nullopt;
     return;
   }
 
   WritePageGuard father_guard;
   InternalPage *father_internal_page = nullptr;
 
-  if (!ctx.write_set_.empty()) {
-    father_guard = std::move(ctx.write_set_.back());
-    father_internal_page = father_guard.AsMut<InternalPage>();
-    ctx.write_set_.pop_back();
-  } else {
-    return;
-  }
+  log << "write set size: " << ctx.write_set_.size() << " | "
+      << "index set size: " << ctx.index_set_.size();
+  LOG_DEBUG("%s", log.str().c_str());
+  father_guard = std::move(ctx.write_set_.back());
+  father_internal_page = father_guard.AsMut<InternalPage>();
+  ctx.write_set_.pop_back();
 
   int leaf_min_size = static_cast<int>((ceil((leaf_max_size_) / 2.0)));
   std::optional<int> check_opt_merge = std::nullopt;
@@ -952,6 +966,7 @@ auto BPLUSTREE_TYPE::Check(InternalPage *internal_page, int index, const KeyType
       InternalPage *father_internal_page = nullptr;
       WritePageGuard guard;
       int father_index = -1;
+
       if (!ctx->write_set_.empty()) {
         guard = std::move(ctx->write_set_.back());
         ctx->write_set_.pop_back();
