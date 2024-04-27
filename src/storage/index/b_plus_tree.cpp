@@ -714,41 +714,37 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
   std::optional<std::pair<KeyType, int>> pair;
 
   // try to steal key from sibling or merge two leaf node
-  if (leaf_page->GetSize() < leaf_min_size) {
-    LeafPage *sibling = nullptr;
-    std::optional<WritePageGuard> sibling_guard_opt = std::nullopt;
-    // whether can be stole a key from right sibling
-    if ((sibling_guard_opt = std::move(IsStoleFromRight(father_internal_page, father_page_index, leaf_min_size)))) {
-      sibling = sibling_guard_opt.value().template AsMut<LeafPage>();
-      MappingType map = sibling->RemoveMapAt(0);
-      for (int i = 1; i <= sibling->GetSize(); i++) {
-        sibling->Move(i, i - 1);
-      }
-      father_internal_page->SetKeyAt(father_page_index + 1, sibling->KeyAt(0));
-      leaf_page->SequentialInsert(leaf_page->GetSize(), std::move(map));
-    } else if ((sibling_guard_opt =
-                    std::move(IsStoleFromLeft(father_internal_page, father_page_index, leaf_min_size)))) {
-      sibling = sibling_guard_opt.value().template AsMut<LeafPage>();
-      MappingType map = sibling->RemoveMapAt(sibling->GetSize() - 1);
-      father_internal_page->SetKeyAt(father_page_index, map.first);
-      leaf_page->InsertMap2Leaf(0, std::move(map));
-    } else {
-      pair = MergeLeaf(leaf_page, father_internal_page, father_page_index);
-      if (comparator_(pair.value().first, key) != 0) {
-        check_opt_merge = Check(father_internal_page, pair.value().second, pair.value().first, &ctx);
-        pair = std::nullopt;
-      }
+
+  LeafPage *sibling = nullptr;
+  std::optional<WritePageGuard> sibling_guard_opt = std::nullopt;
+  // whether can be stole a key from right sibling
+  if ((sibling_guard_opt = std::move(IsStoleFromRight(father_internal_page, father_page_index, leaf_min_size)))) {
+    sibling = sibling_guard_opt.value().template AsMut<LeafPage>();
+    MappingType map = sibling->RemoveMapAt(0);
+    for (int i = 1; i <= sibling->GetSize(); i++) {
+      sibling->Move(i, i - 1);
     }
+    father_internal_page->SetKeyAt(father_page_index + 1, sibling->KeyAt(0));
+    leaf_page->SequentialInsert(leaf_page->GetSize(), std::move(map));
+  } else if ((sibling_guard_opt = std::move(IsStoleFromLeft(father_internal_page, father_page_index, leaf_min_size)))) {
+    sibling = sibling_guard_opt.value().template AsMut<LeafPage>();
+    MappingType map = sibling->RemoveMapAt(sibling->GetSize() - 1);
+    father_internal_page->SetKeyAt(father_page_index, map.first);
+    leaf_page->InsertMap2Leaf(0, std::move(map));
   } else {
-    return;
+    pair = MergeLeaf(leaf_page, father_internal_page, father_page_index);
+    if (comparator_(pair.value().first, key) != 0) {
+      check_opt_merge = Check(father_internal_page, pair.value().second, pair.value().first, &ctx);
+      pair = std::nullopt;
+    }
   }
 
+  sibling_guard_opt = std::nullopt;
   leaf_page_guard.Drop();
 
   int is_check = 0;
   int check_opt_merge_flag = 0;
   std::optional<int> check_opt = std::nullopt;
-
 
   for (int i = 0; !ctx.write_set_.empty(); i++) {
     if (check_opt_merge.has_value()) {
@@ -806,8 +802,8 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *txn) {
 
   // if root page size is equel to 1 delete this page
   if (father_internal_page->GetSize() == 1) {
-    if (ctx.header_page_.has_value()) {
-      header_page = ctx.header_page_.value().AsMut<BPlusTreeHeaderPage>();
+    if (ctx.header_page_) {
+      header_page = ctx.header_page_->AsMut<BPlusTreeHeaderPage>();
 
       page_id_t delete_page_id = header_page->root_page_id_;
       header_page->root_page_id_ = father_internal_page->ValueAt(0);
@@ -977,17 +973,6 @@ auto BPLUSTREE_TYPE::Check(InternalPage *internal_page, int index, const KeyType
         }
         if (merge_flag == -1) {
           ret = std::make_optional<int>(father_index);
-        }
-
-        // delete empty page (root page)
-        if (father_internal_page->GetSize() == 1 && ctx->write_set_.empty()) {
-          if (ctx->header_page_) {
-            auto header_page = ctx->header_page_.value().AsMut<BPlusTreeHeaderPage>();
-            page_id_t root_page = header_page->root_page_id_;
-            header_page->root_page_id_ = father_internal_page->ValueAt(0);
-            bpm_->UnpinPage(root_page, true);
-            bpm_->DeletePage(root_page);
-          }
         }
       }
 
