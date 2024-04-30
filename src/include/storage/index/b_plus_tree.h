@@ -110,24 +110,31 @@ class BPlusTree {
 
   auto MergeInternal(InternalPage *internal_page, InternalPage *father_internal_page, int father_page_index) -> int;
 
-  auto MergeLeaf(LeafPage *leaf_page, InternalPage *father_internal_page, int father_page_index)
-      -> std::pair<KeyType, int>;
+  auto MergeLeaf(LeafPage *leaf_page, InternalPage *father_internal_page, int father_page_index) -> bool;
 
-  auto IsStoleFromRight(InternalPage *internal_page, int father_page_index, int leaf_min_size)
+  /**
+   * @brief We steal from the right sibling mainly for the reason that this operation can reduce the number of key-value
+   * pairs moving within the page
+   *
+   * @return A sibling if can be stole, whether std::nullopt
+   */
+  auto IsStoleFromRight(InternalPage *internal_page, int father_page_index) -> std::optional<WritePageGuard>;
+
+  auto IsStoleFromLeft(InternalPage *internal_page, int father_page_index) -> std::optional<WritePageGuard>;
+  /**
+   * @brief We steal from the right sibling mainly for the reason that this operation can reduce the number of key-value
+   * pairs moving within the page
+   *
+   * @return A sibling if can be stole, whether std::nullopt
+   */
+  auto IsStoleFromRightInter(InternalPage *internal_page, int father_page_index) -> std::optional<WritePageGuard>;
+
+  auto IsStoleFromLeftInter(InternalPage *internal_page, int father_page_index) -> std::optional<WritePageGuard>;
+
+  auto StealInter(InternalPage *internal_page, InternalPage *father_internal_page, int father_index)
       -> std::optional<WritePageGuard>;
 
-  auto IsStoleFromLeft(InternalPage *internal_page, int father_page_index, int leaf_min_size)
-      -> std::optional<WritePageGuard>;
-
-  auto IsStoleFromRightInter(InternalPage *internal_page, int father_page_index, int internal_min_size)
-      -> std::optional<WritePageGuard>;
-
-  auto IsStoleFromLeftInter(InternalPage *internal_page, int father_page_index, int internal_min_size)
-      -> std::optional<WritePageGuard>;
-
-  auto StealInter(InternalPage *internal_page, int index, InternalPage *father_internal_page, int father_index) -> bool;
-
-  auto Check(InternalPage *internal_page, int index, KeyType key, Context *ctx) -> std::optional<int>;
+  auto Check(InternalPage *internal_page, Context *ctx) -> std::optional<int>;
 
   // auto DeleteInternal()
  public:
