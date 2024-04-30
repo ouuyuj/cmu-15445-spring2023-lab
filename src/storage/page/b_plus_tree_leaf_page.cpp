@@ -110,7 +110,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::InsertMap2Leaf(const int pos, const KeyType &ke
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-void B_PLUS_TREE_LEAF_PAGE_TYPE::Move(int from, int to) { array_[to] = std::move(array_[from]); }
+void B_PLUS_TREE_LEAF_PAGE_TYPE::Move(int from, int to) { array_[to] = array_[from]; }
 
 template class BPlusTreeLeafPage<GenericKey<4>, RID, GenericComparator<4>>;
 template class BPlusTreeLeafPage<GenericKey<8>, RID, GenericComparator<8>>;

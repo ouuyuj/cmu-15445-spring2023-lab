@@ -9,6 +9,7 @@ BasicPageGuard::BasicPageGuard(BasicPageGuard &&that) noexcept : BasicPageGuard(
 
   that.page_ = nullptr;
   that.bpm_ = nullptr;
+  that.is_dirty_ = false;
 }
 
 void BasicPageGuard::Drop() {
@@ -18,6 +19,7 @@ void BasicPageGuard::Drop() {
 
   page_ = nullptr;
   bpm_ = nullptr;
+  is_dirty_ = false;
 }
 
 auto BasicPageGuard::operator=(BasicPageGuard &&that) noexcept -> BasicPageGuard & {
@@ -32,6 +34,7 @@ auto BasicPageGuard::operator=(BasicPageGuard &&that) noexcept -> BasicPageGuard
 
     that.page_ = nullptr;
     that.bpm_ = nullptr;
+    that.is_dirty_ = false;
   }
   return *this;
 }
@@ -41,6 +44,7 @@ BasicPageGuard::~BasicPageGuard() {  // NOLINT
     bpm_->UnpinPage(PageId(), is_dirty_);
     page_ = nullptr;
     bpm_ = nullptr;
+    is_dirty_ = false;
   }
 }
 
@@ -50,6 +54,7 @@ auto ReadPageGuard::operator=(ReadPageGuard &&that) noexcept -> ReadPageGuard & 
   if (this != &that) {
     if (guard_.page_ != nullptr && guard_.bpm_ != nullptr) {
       guard_.page_->RUnlatch();
+      guard_.Drop();
     }
     this->guard_ = std::move(that.guard_);
   }
@@ -61,15 +66,12 @@ void ReadPageGuard::Drop() {
     guard_.page_->RUnlatch();
     guard_.Drop();
   }
-
-  guard_.page_ = nullptr;
-  guard_.bpm_ = nullptr;
 }
 
 ReadPageGuard::~ReadPageGuard() {  // NOLINT
   if (guard_.page_ != nullptr && guard_.bpm_ != nullptr) {
     guard_.page_->RUnlatch();
-    // guard_.Drop();
+    guard_.Drop();
   }
 }
 
@@ -79,6 +81,7 @@ auto WritePageGuard::operator=(WritePageGuard &&that) noexcept -> WritePageGuard
   if (this != &that) {
     if (guard_.page_ != nullptr && guard_.bpm_ != nullptr) {
       guard_.page_->WUnlatch();
+      guard_.Drop();
     }
     this->guard_ = std::move(that.guard_);
   }
@@ -90,15 +93,12 @@ void WritePageGuard::Drop() {
     guard_.page_->WUnlatch();
     guard_.Drop();
   }
-
-  guard_.page_ = nullptr;
-  guard_.bpm_ = nullptr;
 }
 
 WritePageGuard::~WritePageGuard() {  // NOLINT
   if (guard_.page_ != nullptr && guard_.bpm_ != nullptr) {
     guard_.page_->WUnlatch();
-    // guard_.Drop();
+    guard_.Drop();
   }
 }
 
