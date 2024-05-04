@@ -29,11 +29,12 @@ void InsertExecutor::Init() {
 
 auto InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
   Tuple child_tuple{};
+  RID child_rid{};
   int64_t cnt = 0;
   bool index_info_is_empty = index_info_.empty();
   auto table = table_info_->table_.get();
 
-  while (child_executor_->Next(&child_tuple, nullptr)) {
+  while (child_executor_->Next(&child_tuple, &child_rid)) {
     TupleMeta tuple_meta{INVALID_TXN_ID, INVALID_TXN_ID, false};
     try {
       auto rid = table->InsertTuple(tuple_meta, child_tuple);
