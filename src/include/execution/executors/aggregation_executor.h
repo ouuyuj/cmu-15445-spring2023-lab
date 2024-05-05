@@ -75,7 +75,7 @@ class SimpleAggregationHashTable {
       switch (agg_types_[i]) {
         case AggregationType::CountStarAggregate: {
           result->aggregates_[i] = result->aggregates_[i].Add(ValueFactory::GetIntegerValue(1));
-          
+
           break;
         }
         case AggregationType::CountAggregate: {
@@ -84,19 +84,18 @@ class SimpleAggregationHashTable {
               result->aggregates_[i] = ValueFactory::GetIntegerValue(0);
             }
             result->aggregates_[i] = result->aggregates_[i].Add(ValueFactory::GetIntegerValue(1));
-            
           }
 
           break;
         }
         case AggregationType::SumAggregate: {
-            if (!input.aggregates_[i].IsNull()) {
-              if (result->aggregates_[i].IsNull()) {
-                result->aggregates_[i] = input.aggregates_[i];
-              } else {
-                result->aggregates_[i] = result->aggregates_[i].Add(input.aggregates_[i]);
-              }
+          if (!input.aggregates_[i].IsNull()) {
+            if (result->aggregates_[i].IsNull()) {
+              result->aggregates_[i] = input.aggregates_[i];
+            } else {
+              result->aggregates_[i] = result->aggregates_[i].Add(input.aggregates_[i]);
             }
+          }
 
           break;
         }
@@ -109,7 +108,7 @@ class SimpleAggregationHashTable {
               result->aggregates_[i] = result->aggregates_[i].Min(input.aggregates_[i]);
             }
           }
-          
+
           break;
         }
         case AggregationType::MaxAggregate: {
@@ -120,7 +119,7 @@ class SimpleAggregationHashTable {
               result->aggregates_[i] = result->aggregates_[i].Max(input.aggregates_[i]);
             }
           }
-          
+
           break;
         }
       }

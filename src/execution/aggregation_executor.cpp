@@ -18,12 +18,15 @@ namespace bustub {
 
 AggregationExecutor::AggregationExecutor(ExecutorContext *exec_ctx, const AggregationPlanNode *plan,
                                          std::unique_ptr<AbstractExecutor> &&child_executor)
-    : AbstractExecutor(exec_ctx), plan_(plan), child_executor_(std::move(child_executor)), 
-      aht_(plan_->aggregates_, plan_->agg_types_), aht_iterator_(aht_.Begin()) {
-    }
+    : AbstractExecutor(exec_ctx),
+      plan_(plan),
+      child_executor_(std::move(child_executor)),
+      aht_(plan_->aggregates_, plan_->agg_types_),
+      aht_iterator_(aht_.Begin()) {}
 
 void AggregationExecutor::Init() {
   child_executor_->Init();
+  aht_.Clear();
 
   Tuple o_tuple{};
   RID o_rid{};
@@ -69,7 +72,7 @@ auto AggregationExecutor::Next(Tuple *tuple, RID *rid) -> bool {
       return false;
     }
 
-    for (const auto& t : plan_->agg_types_) {
+    for (const auto &t : plan_->agg_types_) {
       if (t == AggregationType::CountStarAggregate) {
         values.push_back(ValueFactory::GetIntegerValue(0));
       } else {
