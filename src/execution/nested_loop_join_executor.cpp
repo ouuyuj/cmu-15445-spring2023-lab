@@ -38,9 +38,8 @@ void NestedLoopJoinExecutor::Init() {
 }
 
 auto NestedLoopJoinExecutor::Next(Tuple *tuple, RID *rid) -> bool {
-  Tuple l_tuple{}, r_tuple{};
+  Tuple r_tuple{};
   RID l_rid{}, r_rid{};
-
 
   while (true) {
     if (left_status_) {
@@ -90,8 +89,8 @@ auto NestedLoopJoinExecutor::Next(Tuple *tuple, RID *rid) -> bool {
           right_executor_->Init();
           left_status_ = left_executor_->Next(&l_tuple_, &l_rid);
           left_join_ = false;
+
           break;
-          // return false;
         }
       }
     } else {
