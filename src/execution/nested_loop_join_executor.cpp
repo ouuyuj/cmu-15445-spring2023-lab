@@ -20,7 +20,8 @@ namespace bustub {
 NestedLoopJoinExecutor::NestedLoopJoinExecutor(ExecutorContext *exec_ctx, const NestedLoopJoinPlanNode *plan,
                                                std::unique_ptr<AbstractExecutor> &&left_executor,
                                                std::unique_ptr<AbstractExecutor> &&right_executor)
-    : AbstractExecutor(exec_ctx), plan_(plan),
+    : AbstractExecutor(exec_ctx),
+      plan_(plan),
       left_executor_(std::move(left_executor)),
       right_executor_(std::move(right_executor)) {
   if (!(plan->GetJoinType() == JoinType::LEFT || plan->GetJoinType() == JoinType::INNER)) {
@@ -29,114 +30,76 @@ NestedLoopJoinExecutor::NestedLoopJoinExecutor(ExecutorContext *exec_ctx, const 
   }
 }
 
-void NestedLoopJoinExecutor::Init() { 
+void NestedLoopJoinExecutor::Init() {
+  RID rid;
   left_executor_->Init();
   right_executor_->Init();
+  left_status_ = left_executor_->Next(&l_tuple_, &rid);
 }
 
-auto NestedLoopJoinExecutor::Next(Tuple *tuple, RID *rid) -> bool { 
+auto NestedLoopJoinExecutor::Next(Tuple *tuple, RID *rid) -> bool {
   Tuple l_tuple{}, r_tuple{};
   RID l_rid{}, r_rid{};
 
-  if (!left_status_ && is_first_) {
-    left_status_ = left_executor_->Next(&l_tuple_, &l_rid);
-    is_first_ = false;
-  }
 
   while (true) {
     if (left_status_) {
-      if (plan_->GetJoinType() == JoinType::LEFT) {
-        
-        while (true) {
-          if (right_executor_->Next(&r_tuple, &r_rid)) {
-            Value join_status = plan_->predicate_->EvaluateJoin(&l_tuple_, left_executor_->GetOutputSchema(), 
-                                            &r_tuple, right_executor_->GetOutputSchema());
-            
-            if (!join_status.IsNull() && join_status.GetAs<bool>()) {
-              std::vector<Value> values;
-              values.reserve(GetOutputSchema().GetColumnCount());
-              for (uint32_t i = 0; i < left_executor_->GetOutputSchema().GetColumnCount(); i++) {
-                values.push_back(l_tuple_.GetValue(&left_executor_->GetOutputSchema(), i));
-              }
+      while (true) {
+        if (right_executor_->Next(&r_tuple, &r_rid)) {
+          Value join_status = plan_->predicate_->EvaluateJoin(&l_tuple_, left_executor_->GetOutputSchema(), &r_tuple,
+                                                              right_executor_->GetOutputSchema());
 
-              for (uint32_t i = 0; i < right_executor_->GetOutputSchema().GetColumnCount(); i++) {
-                values.push_back(r_tuple.GetValue(&right_executor_->GetOutputSchema(), i));
-              }
-              
-              *tuple = Tuple(values, &GetOutputSchema());
-              left_join_ = true;
-              
-              return true;
-            }
-          } else {
-
-            if (!left_join_) {
-              std::vector<Value> values;
-              values.reserve(GetOutputSchema().GetColumnCount());
-              for (uint32_t i = 0; i < left_executor_->GetOutputSchema().GetColumnCount(); i++) {
-                values.push_back(l_tuple_.GetValue(&left_executor_->GetOutputSchema(), i));
-              }
-
-              for (uint32_t i = 0; i < right_executor_->GetOutputSchema().GetColumnCount(); i++) {
-                values.push_back(ValueFactory::GetNullValueByType(right_executor_->GetOutputSchema().GetColumn(i).GetType()));
-              }
-              
-              *tuple = Tuple(values, &GetOutputSchema());
-              left_join_ = false;
-
-              right_executor_->Init();
-              left_status_ = left_executor_->Next(&l_tuple_, &l_rid);
-              
-              return true;
+          if (!join_status.IsNull() && join_status.GetAs<bool>()) {
+            std::vector<Value> values;
+            values.reserve(GetOutputSchema().GetColumnCount());
+            for (uint32_t i = 0; i < left_executor_->GetOutputSchema().GetColumnCount(); i++) {
+              values.push_back(l_tuple_.GetValue(&left_executor_->GetOutputSchema(), i));
             }
 
-            right_executor_->Init();
-            left_status_ = left_executor_->Next(&l_tuple_, &l_rid);
+            for (uint32_t i = 0; i < right_executor_->GetOutputSchema().GetColumnCount(); i++) {
+              values.push_back(r_tuple.GetValue(&right_executor_->GetOutputSchema(), i));
+            }
+
+            *tuple = Tuple(values, &GetOutputSchema());
+            left_join_ = true;
+
+            return true;
+          }
+        } else {
+          if (plan_->GetJoinType() == JoinType::LEFT && !left_join_) {
+            std::vector<Value> values;
+            values.reserve(GetOutputSchema().GetColumnCount());
+            for (uint32_t i = 0; i < left_executor_->GetOutputSchema().GetColumnCount(); i++) {
+              values.push_back(l_tuple_.GetValue(&left_executor_->GetOutputSchema(), i));
+            }
+
+            for (uint32_t i = 0; i < right_executor_->GetOutputSchema().GetColumnCount(); i++) {
+              values.push_back(
+                  ValueFactory::GetNullValueByType(right_executor_->GetOutputSchema().GetColumn(i).GetType()));
+            }
+
+            *tuple = Tuple(values, &GetOutputSchema());
             left_join_ = false;
-            break;
-            // return false;
-          }
-        }
 
-        
-      }
-
-      if (plan_->GetJoinType() == JoinType::INNER) {
-        while (true) { 
-          if (right_executor_->Next(&r_tuple, &r_rid)) {
-            Value join_status = plan_->predicate_->EvaluateJoin(&l_tuple_, left_executor_->GetOutputSchema(), 
-                                            &r_tuple, right_executor_->GetOutputSchema());
-            
-            if (!join_status.IsNull() && join_status.GetAs<bool>()) {
-              std::vector<Value> values;
-              values.reserve(GetOutputSchema().GetColumnCount());
-              for (uint32_t i = 0; i < left_executor_->GetOutputSchema().GetColumnCount(); i++) {
-                values.push_back(l_tuple_.GetValue(&left_executor_->GetOutputSchema(), i));
-              }
-
-              for (uint32_t i = 0; i < right_executor_->GetOutputSchema().GetColumnCount(); i++) {
-                values.push_back(r_tuple.GetValue(&right_executor_->GetOutputSchema(), i));
-              }
-              
-              *tuple = Tuple(values, &GetOutputSchema());
-
-              return true;
-            }
-          } else {
             right_executor_->Init();
             left_status_ = left_executor_->Next(&l_tuple_, &l_rid);
-            break;
+
+            return true;
           }
+
+          right_executor_->Init();
+          left_status_ = left_executor_->Next(&l_tuple_, &l_rid);
+          left_join_ = false;
+          break;
+          // return false;
         }
       }
     } else {
-      // left_executor_->Next(&l_tuple, &l_rid);
       return false;
     }
-
   }
 
-  return false; 
+  return false;
 }
 
 }  // namespace bustub
