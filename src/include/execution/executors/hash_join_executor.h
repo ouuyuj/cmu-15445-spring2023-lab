@@ -14,6 +14,8 @@
 
 #include <memory>
 #include <utility>
+#include <unordered_map>
+#include <vector>
 
 #include "execution/executor_context.h"
 #include "execution/executors/abstract_executor.h"
