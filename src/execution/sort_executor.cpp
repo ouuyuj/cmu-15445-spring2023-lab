@@ -12,6 +12,7 @@ void SortExecutor::Init() {
   child_executor_->Init();
   Tuple tuple{};
   RID rid{};
+  output_tuples_.clear();
 
   while (child_executor_->Next(&tuple, &rid)) {
     output_tuples_.emplace_back(tuple);
@@ -55,6 +56,7 @@ void SortExecutor::Init() {
 auto SortExecutor::Next(Tuple *tuple, RID *rid) -> bool {
   if (it_ != output_tuples_.end()) {
     *tuple = *it_;
+    *rid = it_->GetRid();
     ++it_;
     return true;
   }
