@@ -57,7 +57,7 @@ class HashJoinExecutor : public AbstractExecutor {
   /** @return The output schema for the join */
   auto GetOutputSchema() const -> const Schema & override { return plan_->OutputSchema(); };
 
-   /** @return The join key */
+  /** @return The join key */
   auto GetLeftJoinKey(const Tuple *tuple) const -> JoinKey {
     std::vector<Value> keys;
     for (const auto &expr : plan_->LeftJoinKeyExpressions()) {
