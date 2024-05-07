@@ -45,25 +45,33 @@ void SortExecutor::Init() {
 
   std::sort(output_tuples_.begin(), output_tuples_.end(), [this](const auto &x, const auto &y) {
     CmpBool s;
-    for (size_t i = 0; i< plan_->GetOrderBy().size(); i++) {
+    Value l;
+    Value r;
+    for (size_t i = 0; i < plan_->GetOrderBy().size(); i++) {
+      l = plan_->GetOrderBy().at(i).second->Evaluate(&x, GetOutputSchema());
+      r = plan_->GetOrderBy().at(i).second->Evaluate(&y, GetOutputSchema());
+
+      if (l.CompareEquals(r) == CmpBool::CmpTrue) {
+        continue;
+      }
+
       switch (plan_->GetOrderBy().at(i).first) {
         case OrderByType::ASC: 
         case OrderByType::DEFAULT: {
-          s = plan_->GetOrderBy().at(i).second->
-              Evaluate(&x, GetOutputSchema()).CompareLessThan(plan_->GetOrderBy().at(i).second->Evaluate(&y, GetOutputSchema()));
+          s = l.CompareLessThan(r);
           break;
         }
 
         case OrderByType::DESC: {
-          s = plan_->GetOrderBy().at(i).second->
-              Evaluate(&x, GetOutputSchema()).CompareGreaterThan(plan_->GetOrderBy().at(i).second->Evaluate(&y, GetOutputSchema()));
+          s = l.CompareGreaterThan(r);
           break;
         }
 
         default: { }
       }
+      return s == CmpBool::CmpTrue;
     }
-    return s == CmpBool::CmpTrue;
+    return false;
   });
 
 
@@ -81,11 +89,28 @@ auto SortExecutor::Next(Tuple *tuple, RID *rid) -> bool {
   return false;
 }
 
-}  // namespace bustub
+}
 
-// namespace std {
-//   template<>
-//   struct less {
+/*
+#include <tuple>
+#include <algorithm>
 
-//   };
-// }
+// 自定义比较函数，使用折叠表达式处理不定长元组的比较
+template<typename... Ts>
+bool tuple_less(const std::tuple<Ts...> &t1, const std::tuple<Ts...> &t2) {
+    return std::apply([](const auto&... args1) {
+        return std::apply([&](const auto&... args2) {
+            return ((args1 < args2) && ...);
+        }, t2);
+    }, t1);
+}
+
+int main() {
+    std::tuple<int, float, std::string> tuple1{1, 3.14f, "hello"};
+    std::tuple<int, float, std::string> tuple2{2, 2.71f, "world"};
+
+    bool result = tuple_less(tuple1, tuple2);
+
+    return 0;
+}
+*/
