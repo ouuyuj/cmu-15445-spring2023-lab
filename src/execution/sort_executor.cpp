@@ -12,7 +12,7 @@ void SortExecutor::Init() {
   child_executor_->Init();
   Tuple tuple{};
   RID rid{};
-  
+
   output_tuples_.clear();
   it_ = output_tuples_.begin();
 
@@ -44,7 +44,8 @@ void SortExecutor::Init() {
           break;
         }
 
-        default: return false;
+        default:
+          return false;
       }
       return (s == CmpBool::CmpTrue);
     }
