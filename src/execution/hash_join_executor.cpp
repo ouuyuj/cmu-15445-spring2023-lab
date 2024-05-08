@@ -18,7 +18,10 @@ namespace bustub {
 HashJoinExecutor::HashJoinExecutor(ExecutorContext *exec_ctx, const HashJoinPlanNode *plan,
                                    std::unique_ptr<AbstractExecutor> &&left_child,
                                    std::unique_ptr<AbstractExecutor> &&right_child)
-    : AbstractExecutor(exec_ctx), left_child_(std::move(left_child)), right_child_(std::move(right_child)) {
+    : AbstractExecutor(exec_ctx),
+      plan_(plan),
+      left_child_(std::move(left_child)),
+      right_child_(std::move(right_child)) {
   if (!(plan->GetJoinType() == JoinType::LEFT || plan->GetJoinType() == JoinType::INNER)) {
     // Note for 2023 Spring: You ONLY need to implement left join and inner join.
     throw bustub::NotImplementedException(fmt::format("join type {} not supported", plan->GetJoinType()));
