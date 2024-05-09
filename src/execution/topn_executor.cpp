@@ -11,7 +11,7 @@ void TopNExecutor::Init() {
   Tuple tuple{};
   RID rid{};
   tuples_.clear();
-  it_ = tuples_.end();
+  it_ = tuples_.crend();
   heap_size_ = 0;
 
   auto cmp = [&](const Tuple &x, const Tuple &y) -> bool {
@@ -62,11 +62,11 @@ void TopNExecutor::Init() {
     pq.pop();
   }
 
-  it_ = tuples_.begin();
+  it_ = tuples_.crbegin();
 }
 
 auto TopNExecutor::Next(Tuple *tuple, RID *rid) -> bool {
-  if (it_ != tuples_.end()) {
+  if (it_ != tuples_.crend()) {
     *tuple = *it_;
     *rid = tuple->GetRid();
     ++it_;

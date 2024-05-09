@@ -275,20 +275,20 @@ auto Optimizer::HashJoinOptimize(const AbstractPlanNodeRef &plan, std::vector<Ab
     // 只要优化失败则不继续往下优化直接返回
     success = false;
     return plan;
+  }
 
-    if (plan->GetType() == PlanType::SeqScan || plan->GetType() == PlanType::MockScan) {
-      // 若到达scannode则到达终点
-      success = true;
-      // 此时若pd_expr不为空，则一定够是用于过滤scan的表达式
-      if (!pd_expr.empty()) {
-        // 拼接过滤条件得到过滤表达式{cmp1,cmp2,...}->cmp1 And cmp2 And...
-        auto filter_expr = GetFilterExpress(pd_expr);
-        // 返回过滤节点（孩子为scan）
-        return std::make_shared<FilterPlanNode>(plan->output_schema_, filter_expr, plan);
-      }
-      // 若没有过滤表达式则直接返回scan节点
-      return plan;
+  if (plan->GetType() == PlanType::SeqScan || plan->GetType() == PlanType::MockScan) {
+    // 若到达scannode则到达终点
+    success = true;
+    // 此时若pd_expr不为空，则一定够是用于过滤scan的表达式
+    if (!pd_expr.empty()) {
+      // 拼接过滤条件得到过滤表达式{cmp1,cmp2,...}->cmp1 And cmp2 And...
+      auto filter_expr = GetFilterExpress(pd_expr);
+      // 返回过滤节点（孩子为scan）
+      return std::make_shared<FilterPlanNode>(plan->output_schema_, filter_expr, plan);
     }
+    // 若没有过滤表达式则直接返回scan节点
+    return plan;
   }
 
   std::vector<AbstractPlanNodeRef> children;

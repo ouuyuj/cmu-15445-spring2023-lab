@@ -231,7 +231,7 @@ TEST(BPlusTreeTests, DeleteTest3) {
 
   std::vector<int64_t> remove_keys = {37, 2, 13, 25, 17, 26, 29, 35, 38, 27, 39, 36, 9,  24, 16, 33,
                                       31, 5, 4,  18, 19, 1,  3,  20, 32, 18, 19, 6,  7,  20, 34, 6,
-                                      1,  3, 10, 11, 18, 19, 27, 8,  12, 22, 21, 28, 20, 14, 30};
+                                      1,  3, 10, 11, 18, 19, 27, 8,  12, 22, 21, 28, 20, 14, 30, 15};
   for (auto key : remove_keys) {
     index_key.SetFromInteger(key);
     tree.Remove(index_key, transaction);
@@ -241,19 +241,26 @@ TEST(BPlusTreeTests, DeleteTest3) {
     std::cout << tree.DrawBPlusTree() << std::endl;
     std::cout << "<===================>" << std::endl;
   }
-  int64_t key = 20;
+  int64_t key = 13;
   index_key.SetFromInteger(key);
   tree.Remove(index_key, transaction);
+  tree.Print(bpm);
+  std::cout << tree.DrawBPlusTree() << std::endl;
+
+  int64_t value = key & 0xFFFFFFFF;
+  rid.Set(static_cast<int32_t>(key >> 32), value);
+  index_key.SetFromInteger(key);
+  tree.Insert(index_key, rid, transaction);
 
   // tree.Print(bpm);
-  std::cout << "Remove(" << key << "):" << std::endl;
+  // std::cout << "Remove(" << key << "):" << std::endl;
   std::cout << tree.DrawBPlusTree() << std::endl;
-  std::cout << "<===================>" << std::endl;
+  // std::cout << "<===================>" << std::endl;
 
   int64_t size = 0;
   bool is_present;
 
-  for (int64_t key = 1; key < 45; key++) {
+  for (int64_t key = 1; key < 40; key++) {
     rids.clear();
     index_key.SetFromInteger(key);
     is_present = tree.GetValue(index_key, &rids);

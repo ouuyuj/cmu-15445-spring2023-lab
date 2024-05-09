@@ -23,8 +23,8 @@ InsertExecutor::InsertExecutor(ExecutorContext *exec_ctx, const InsertPlanNode *
 void InsertExecutor::Init() {
   child_executor_->Init();
   Catalog *catalog = exec_ctx_->GetCatalog();
-  table_info_ = catalog->GetTable(plan_->GetTableOid());
-  index_info_ = catalog->GetTableIndexes(catalog->GetTable(plan_->GetTableOid())->name_);
+  table_info_ = catalog->GetTable(plan_->TableOid());
+  index_info_ = catalog->GetTableIndexes(catalog->GetTable(plan_->TableOid())->name_);
 }
 
 auto InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {

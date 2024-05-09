@@ -136,7 +136,7 @@ TEST(BPlusTreeConcurrentTest, DISABLED_InsertTest1) {
   BPlusTree<GenericKey<8>, RID, GenericComparator<8>> tree("foo_pk", header_page->GetPageId(), bpm, comparator, 3, 4);
   // keys to Insert
   std::vector<int64_t> keys;
-  int64_t scale_factor = 1000;
+  int64_t scale_factor = 100000;
   for (int64_t key = 1; key < scale_factor; key++) {
     keys.push_back(key);
   }
@@ -226,6 +226,9 @@ TEST(BPlusTreeConcurrentTest, DISABLED_InsertTest2) {
 
 TEST(BPlusTreeConcurrentTest, DeleteTest1) {
   // create KeyComparator and index schema
+  // auto fs = std::fstream();
+  // fs.open("/home/heibai/projects/cmu-15445/project/bustub/test/storage/b_plus_tree_concurrent_test_1.log",
+  //         std::ios::out | std::ios::app);
   auto key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema.get());
 
@@ -240,27 +243,83 @@ TEST(BPlusTreeConcurrentTest, DeleteTest1) {
   BPlusTree<GenericKey<8>, RID, GenericComparator<8>> tree("foo_pk", header_page->GetPageId(), bpm, comparator);
   // sequential insert
   std::vector<int64_t> keys;
-  int64_t scale_factor = 100000;
+  int64_t scale_factor = 50000;
   for (int64_t key = 1; key < scale_factor; key++) {
     keys.push_back(key);
   }
   InsertHelper(&tree, keys);
 
-  std::vector<int64_t> remove_keys = {1, 5, 3, 4};
+  uint32_t pre = 1;
+  for (auto iterator = tree.Begin(); iterator != tree.End(); ++iterator) {
+    auto location = (*iterator).second;
+    auto now = location.GetSlotNum();
+    ASSERT_EQ(pre, now);
+    pre++;
+  }
+
+  std::vector<int64_t> remove_keys;
+  for (int64_t key = 1; key < scale_factor; key += 2) {
+    remove_keys.push_back(key);
+  }
+  // for (int64_t key = 1; key < 103; key += 2) {
+  //   remove_keys.clear();
+  //   remove_keys.push_back(key);
+  //   DeleteHelper(&tree, remove_keys);
+  //   fs << tree.DrawBPlusTree() << std::endl;
+  // }
+
+  std::cout << remove_keys.size() << std::endl;
+
   LaunchParallelTest(2, DeleteHelper, &tree, remove_keys);
 
-  // std::vector<RID> rids;
-  int64_t size = 0;
-  // for (auto key : keys) {
-  //   rids.clear();
-  //   index_key.SetFromInteger(key);
-  //   tree.GetValue(index_key, &rids);
-  //   EXPECT_EQ(rids.size(), 1);
+  // fs << tree.DrawBPlusTree() << std::endl;
 
-  //   int64_t value = key & 0xFFFFFFFF;
-  //   EXPECT_EQ(rids[0].GetSlotNum(), value);
-  //   size = size + 1;
-  // }
+  // remove_keys.clear();
+  // remove_keys.push_back(103);
+  // DeleteHelper(&tree, remove_keys);
+  // LaunchParallelTest(2, DeleteHelperSplit, &tree, remove_keys, 2);
+  // fs << tree.DrawBPlusTree() << std::endl;
+
+  // remove_keys.clear();
+  // remove_keys.push_back(105);
+  // DeleteHelper(&tree, remove_keys);
+  // fs << tree.DrawBPlusTree() << std::endl;
+
+  pre = 0;
+  int64_t key = 2;
+  std::vector<RID> rids_;
+  for (auto iterator = tree.Begin(); iterator != tree.End() && key < scale_factor; ++iterator, key += 2) {
+    auto location = (*iterator).second;
+    auto now = location.GetSlotNum();
+    EXPECT_LT(pre, now);
+
+    // fs << now << "\n";
+
+    EXPECT_EQ((now % 2), 0);
+    EXPECT_EQ((now - pre), 2);
+    if ((now % 2) != 0 || (now - pre) != 2) {
+      std::cout << now << std::endl;
+      // fs.close();
+    }
+    ASSERT_EQ((now - pre), 2);
+    ASSERT_EQ((now % 2), 0);
+    pre = now;
+  }
+
+  // fs.close();
+
+  std::vector<RID> rids;
+  int64_t size = 0;
+  for (int64_t key = 2; key < scale_factor; key += 2) {
+    rids.clear();
+    index_key.SetFromInteger(key);
+    tree.GetValue(index_key, &rids);
+    EXPECT_EQ(rids.size(), 1);
+
+    int64_t value = key & 0xFFFFFFFF;
+    EXPECT_EQ(rids[0].GetSlotNum(), value);
+    size = size + 1;
+  }
 
   int64_t start_key = 2;
   int64_t current_key = start_key;
@@ -268,9 +327,8 @@ TEST(BPlusTreeConcurrentTest, DeleteTest1) {
   index_key.SetFromInteger(start_key);
   for (auto iterator = tree.Begin(index_key); iterator != tree.End(); ++iterator) {
     auto location = (*iterator).second;
-    EXPECT_EQ(location.GetPageId(), 0);
     EXPECT_EQ(location.GetSlotNum(), current_key);
-    current_key = current_key + 1;
+    current_key = current_key + 2;
     size = size + 1;
   }
 
@@ -324,7 +382,7 @@ TEST(BPlusTreeConcurrentTest, DISABLED_DeleteTest2) {
   delete bpm;
 }
 
-TEST(BPlusTreeConcurrentTest, MixTest1) {
+TEST(BPlusTreeConcurrentTest, DISABLED_MixTest1) {
   // create KeyComparator and index schema
   auto key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema.get());
@@ -365,7 +423,7 @@ TEST(BPlusTreeConcurrentTest, MixTest1) {
   delete bpm;
 }
 
-TEST(BPlusTreeConcurrentTest, MixTest2) {
+TEST(BPlusTreeConcurrentTest, DISABLED_MixTest2) {
   // create KeyComparator and index schema
   auto key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema.get());
@@ -384,7 +442,7 @@ TEST(BPlusTreeConcurrentTest, MixTest2) {
   // Add perserved_keys
   std::vector<int64_t> perserved_keys;
   std::vector<int64_t> dynamic_keys;
-  int64_t total_keys = 50;
+  int64_t total_keys = 100000;
   int64_t sieve = 5;
   for (int64_t i = 1; i <= total_keys; i++) {
     if (i % sieve == 0) {

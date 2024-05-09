@@ -23,8 +23,8 @@ DeleteExecutor::DeleteExecutor(ExecutorContext *exec_ctx, const DeletePlanNode *
 void DeleteExecutor::Init() {
   child_executor_->Init();
   Catalog *catalog = exec_ctx_->GetCatalog();
-  table_info_ = catalog->GetTable(plan_->GetTableOid());
-  index_info_ = catalog->GetTableIndexes(catalog->GetTable(plan_->GetTableOid())->name_);
+  table_info_ = catalog->GetTable(plan_->TableOid());
+  index_info_ = catalog->GetTableIndexes(catalog->GetTable(plan_->TableOid())->name_);
 }
 
 auto DeleteExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {

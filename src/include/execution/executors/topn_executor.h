@@ -66,7 +66,7 @@ class TopNExecutor : public AbstractExecutor {
 
   std::vector<Tuple> tuples_{};
 
-  std::vector<Tuple>::const_iterator it_{};
+  std::vector<Tuple>::const_reverse_iterator it_{};
 
   size_t heap_size_{0};
 };
