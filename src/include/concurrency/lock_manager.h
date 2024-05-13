@@ -21,6 +21,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <functional>
 
 #include "common/config.h"
 #include "common/macros.h"
@@ -28,6 +29,16 @@
 #include "concurrency/transaction.h"
 
 namespace bustub {
+
+class UpgradeGraph {
+ public:
+  static const int can_upgraded_graph_[5][5];
+};
+
+class CompatibleLockGraph {
+ public:
+  static const int compatible_lock_graph[5][5];
+};
 
 class TransactionManager;
 
@@ -319,12 +330,15 @@ class LockManager {
  private:
   /** Spring 2023 */
   /* You are allowed to modify all functions below. */
-  auto UpgradeLockTable(Transaction *txn, LockMode lock_mode, const table_oid_t &oid) -> bool;
+  auto UpgradeLockTable(Transaction *txn, LockMode cur_mode, LockMode new_mode, const table_oid_t &oid) -> bool;
   auto UpgradeLockRow(Transaction *txn, LockMode lock_mode, const table_oid_t &oid, const RID &rid) -> bool;
-  auto AreLocksCompatible(LockMode l1, LockMode l2) -> bool;
-  auto CanTxnTakeLock(Transaction *txn, LockMode lock_mode) -> bool;
+  void MapLockModeToTxnLockSetFunc(Transaction *txn, LockMode lock_mode, const table_oid_t &oid);
+  void MapLockModeToTxnLockRemoveFunc(Transaction *txn, LockMode lock_mode, const table_oid_t &oid);
+  inline auto AreLocksCompatible(LockMode l1, LockMode l2) -> bool;
+  auto CanTxnTakeLock(Transaction *txn, LockMode lock_mode,
+                                 std::shared_ptr<LockRequestQueue> &lock_request_queue) -> bool;
   void GrantNewLocksIfPossible(LockRequestQueue *lock_request_queue);
-  auto CanLockUpgrade(LockMode curr_lock_mode, LockMode requested_lock_mode) -> bool;
+  inline auto CanLockUpgrade(LockMode curr_lock_mode, LockMode requested_lock_mode) -> bool;
   auto CheckAppropriateLockOnTable(Transaction *txn, const table_oid_t &oid, LockMode row_lock_mode) -> bool;
   auto FindCycle(txn_id_t source_txn, std::vector<txn_id_t> &path, std::unordered_set<txn_id_t> &on_path,
                  std::unordered_set<txn_id_t> &visited, txn_id_t *abort_txn_id) -> bool;
