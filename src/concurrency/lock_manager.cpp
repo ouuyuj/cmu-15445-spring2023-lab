@@ -218,19 +218,24 @@ auto LockManager::LockTable(Transaction *txn, LockMode lock_mode, const table_oi
         } else {
           it->second->upgrading_ = txn->GetTransactionId();
           it->second->request_queue_.erase(lrq_it);
-          upgraded = UpgradeLockTable(txn, lr->lock_mode_, lock_mode, oid);  // true if compatible, else false
+
+          if (UpgradeLockTable(txn, lr->lock_mode_, lock_mode, oid)) { // true if compatible, else false
+            it->second->request_queue_.emplace_back(std::make_shared<LockRequest>(txn->GetTransactionId(), lock_mode, oid));
+            upgraded = true;
+          } else {
+            txn->SetState(TransactionState::ABORTED);
+            throw TransactionAbortException(txn->GetTransactionId(), AbortReason::INCOMPATIBLE_UPGRADE);
+          }
+          
           break;
         }
       }
     }
   }
 
-  if (!upgraded) {
-    txn->SetState(TransactionState::ABORTED);
-    throw TransactionAbortException(txn->GetTransactionId(), AbortReason::INCOMPATIBLE_UPGRADE);
-  }
-
-  it->second->request_queue_.emplace_back(std::make_shared<LockRequest>(txn->GetTransactionId(), lock_mode, oid));
+  
+  if (!upgraded)
+    it->second->request_queue_.emplace_back(std::make_shared<LockRequest>(txn->GetTransactionId(), lock_mode, oid));
   
   
 
