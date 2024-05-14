@@ -37,7 +37,7 @@ class UpgradeGraph {
 
 class CompatibleLockGraph {
  public:
-  static const int compatible_lock_graph[5][5];
+  static const int compatible_lock_graph_[5][5];
 };
 
 class TransactionManager;
@@ -340,6 +340,10 @@ class LockManager {
   void GrantNewLocksIfPossible(LockRequestQueue *lock_request_queue);
   inline auto CanLockUpgrade(LockMode curr_lock_mode, LockMode requested_lock_mode) -> bool;
   auto CheckAppropriateLockOnTable(Transaction *txn, const table_oid_t &oid, LockMode row_lock_mode) -> bool;
+  auto CheckAllRowsUnlockInLM(Transaction *txn, const table_oid_t &oid) -> bool;
+  auto CheckAllRowsUnlockInTxn(Transaction *txn, const table_oid_t &oid) -> bool;
+  void MapLockModeToTxnRowLockSetFunc(Transaction *txn, LockMode lock_mode, const table_oid_t &oid, const RID &rid);
+  void MapLockModeToTxnRowLockRemoveFunc(Transaction *txn, LockMode lock_mode, const table_oid_t &oid, const RID &rid);
   auto FindCycle(txn_id_t source_txn, std::vector<txn_id_t> &path, std::unordered_set<txn_id_t> &on_path,
                  std::unordered_set<txn_id_t> &visited, txn_id_t *abort_txn_id) -> bool;
   void UnlockAll();
