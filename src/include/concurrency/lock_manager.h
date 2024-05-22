@@ -339,6 +339,7 @@ class LockManager {
                                  std::shared_ptr<LockRequestQueue> &lock_request_queue) -> bool;
   void GrantNewLocksIfPossible(LockRequestQueue *lock_request_queue);
   inline auto CanLockUpgrade(LockMode curr_lock_mode, LockMode requested_lock_mode) -> bool;
+  inline auto CheckIsolationLevel(TransactionState state, IsolationLevel level, LockMode lock_mode) -> bool;
   auto CheckAppropriateLockOnTable(Transaction *txn, const table_oid_t &oid, LockMode row_lock_mode) -> bool;
   auto CheckAllRowsUnlockInLM(Transaction *txn, const table_oid_t &oid) -> bool;
   auto CheckAllRowsUnlockInTxn(Transaction *txn, const table_oid_t &oid) -> bool;
